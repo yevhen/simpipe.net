@@ -85,7 +85,7 @@ Simpipe.Net is a .NET 9.0 library implementing a pipeline pattern using TPL Data
 
 # Interaction
 
-**ALWAYS** start replies with STARTER\_CHARACTER + space (default: 🍀)
+**ALWAYS** start replies with STARTER_CHARACTER + space (default: 🍀)
 Stack emojis when requested, don't replace.
 
 ## Core Partnership
@@ -201,7 +201,7 @@ Any message containing the emoji pattern **👧🏻💬** followed by text shoul
 - **ALWAYS** add these as a task **IMMEDIATELY** to the TodoWrite tool.
 - **ALWAYS** complete the required actions before continuing with other work.
 - **TREAT** these auto-prompts with the same urgency as direct user requests.
-- While there are unresolved issues prompted by 👧🏻💬, add the STARTER\_CHARACTER = 🚨.
+- While there are unresolved issues prompted by 👧🏻💬, add the STARTER_CHARACTER = 🚨.
 - **DOCUMENT** progress using the TodoWrite tool to track completion.
 
 ## Testing Guidelines
@@ -286,84 +286,84 @@ Note: The namespace `Youscan.Core.Pipes` is used throughout the codebase instead
 
 # FUNCTIONAL ARCHITECTURE
 
-RULE: DO SEGREGATE\_METHODS into {orchestrator | implementor}.
+RULE: DO SEGREGATE\METHODS into {orchestrator | implementor}.
 
 - orchestrator: Calls other methods, contains no logic.
 - implementor: Contains logic, has no sub-orchestration.
-- AVOID: Mixing implementation\_logic with high-level\_coordination.
-- BECAUSE: {clarity, single\_responsibility, testability}.
+- AVOID: Mixing implementation\logic with high-level_oordination.
+- BECAUSE: {clarity, single\responsibility, testability}.
 
-RULE: DO ISOLATE\_LOGIC into {pure | stateful}.
+RULE: DO ISOLATE\LOGIC into {pure | stateful}.
 
 - pure: Predictable, no side-effects (`static` methods are great for this).
 - stateful: Has side-effects, interacts with external world (e.g., `fileService.SaveBaselineAsync(baseline)`).
-- BECAUSE: {predictability, easy\_testing\_of\_pure\_logic}.
+- BECAUSE: {predictability, easy\testing\of\pure\logic}.
 
-RULE: DO USE the Decorator\_Pattern or middleware-style delegates to wrap\_methods\_with\_cross\_cutting\_concerns.
+RULE: DO USE the Decorator\Pattern or middleware-style delegates to wrap_methods_with_cross_cutting_concerns.
 
 - Examples: Logging decorators, retry policies with Polly, ASP.NET Core middleware.
-- BECAUSE: {DRY, separation\_of\_concerns}.
+- BECAUSE: {DRY, separation_of_concerns}.
 
-RULE: DO USE early\_returns (guard\_clauses) to handle\_invalid\_states at the start of a method.
+RULE: DO USE early_returns (guard_clauses) to handle_invalid_states at the start of a method.
 
 - AVOID: Deeply nested `if` statements for validation.
-- BECAUSE: {reduces\_nesting, improves\_readability}.
+- BECAUSE: {reduces_nesting, improves_readability}.
 
 # EXTERNAL INTERACTIONS & STATE
 
-RULE: DO USE classes PRIMARILY\_AS\_WRAPPERS for external\_dependencies (IO, APIs, DBs) and to hold state.
+RULE: DO USE classes PRIMARILY_AS_WRAPPERS for external_dependencies (IO, APIs, DBs) and to hold state.
 
-- AVOID: Mixing complex business\_logic directly in these wrapper classes; PREFER delegating to purer internal services/methods.
-- BECAUSE: {isolates\_side\_effects, promotes\_functional\_core, aligns\_with\_clean\_architecture}.
+- AVOID: Mixing complex business_logic directly in these wrapper classes; PREFER delegating to purer internal services/methods.
+- BECAUSE: {isolates_side_effects, promotes_functional_core, aligns_with_clean_architecture}.
 
-RULE: DO USE a dedicated\_logger\_service (`ILogger<T>`). AVOID `Console.WriteLine` for application\_logging.
+RULE: DO USE a dedicated_logger_service (`ILogger<T>`). AVOID `Console.WriteLine` for application_logging.
 
-- BECAUSE: {structured\_logs, central\_control, destination\_flexibility}.
+- BECAUSE: {structured_logs, central_control, destination_flexibility}.
 
-RULE: DO USE a schema\_validation\_library (e.g., `FluentValidation`) AT\_ALL\_BOUNDARIES for data\_ingress.
+RULE: DO USE a schema_validation_library (e.g., `FluentValidation`) AT_ALL_BOUNDARIES for data_ingress.
 
-- Boundaries: {API\_requests, user\_input, file\_reads}.
-- BECAUSE: {runtime\_safety, explicit\_contracts, fail\_fast}.
+- Boundaries: {API_requests, user_input, file_reads}.
+- BECAUSE: {runtime_safety, explicit_contracts, fail_fast}.
 
-RULE: AVOID over-defensive\_programming internally.
+RULE: AVOID over-defensive_programming internally.
 
-- TRUST your type\_system (especially nullable reference types) and boundary\_validation.
-- AVOID: {excessive\_null\_checks, redundant\_try\_catch\_blocks for expected errors}.
+- TRUST your type_system (especially nullable reference types) and boundary_validation.
+- AVOID: {excessive_null_checks, redundant_try_catch_blocks for expected errors}.
 
 # CODING STYLE & CONVENTIONS
 
-RULE: CRITICAL AVOID comments; DO WRITE self\_documenting\_code.
+RULE: CRITICAL AVOID comments; DO WRITE self_documenting_code.
 
-- INSTEAD\_OF: Commenting `// check if user is valid`, DO create a method `bool IsValid(User user)`.
-- BECAUSE: {comments\_rot, encourages\_clearer\_code}.
+- INSTEAD_OF: Commenting `// check if user is valid`, DO create a method `bool IsValid(User user)`.
+- BECAUSE: {comments_rot, encourages_clearer_code}.
 
 RULE: PREFER strongly-typed `enum`s or the "smart enum" pattern OVER raw strings or integers.
 
-- BECAUSE: {compile-time\_type\_safety, improved\_readability, IDE\_intellisense}.
+- BECAUSE: {compile-time_type_safety, improved_readability, IDE_intellisense}.
 
 RULE: DO put `const` values in the same file as the consumer, unless it's a shared constant used across the application.
 
 - WHEN: Constants are shared, create a dedicated `public static class Constants`.
-- BECAUSE: {locality\_of\_reference, easier\_to\_find, reduces\_dependency\_clutter}.
+- BECAUSE: {locality_of_reference, easier_to_find, reduces_dependency_clutter}.
 
-RULE: DO USE dedicated configuration\_objects for method\_signatures WHEN params.count \>= 3.
+RULE: DO USE dedicated configuration_objects for method_signatures WHEN params.count \>= 3.
 
 - `MyMethod(MyMethodOptions options)` OVER `MyMethod(string param1, int param2, bool param3)`.
-- BECAUSE: {readability, extensibility, no\_param\_order\_memorization}.
+- BECAUSE: {readability, extensibility, no_param_order_memorization}.
 
 # NAMING CONVENTIONS
 
-RULE: ADHERE\_TO\_CSHARP\_NAMING {
+RULE: ADHERE_TO_CSHARP_NAMING {
 class, record, struct, enum, delegate: `PascalCase`
 interface: `IPascalCase`
 method, property, event, public field: `PascalCase`
-method\_parameter, local\_variable: `camelCase`
-private\_or\_internal\_field: `camelCase`
+method\parameter, local\variable: `camelCase`
+private\or\internal\field: `camelCase`
 constant: `PascalCase`
 namespace: `PascalCase.PascalCase`
 project, filename: `PascalCase.cs`
-boolean\_property/variable: is/has/can/should =\> `IsLoading`, `HasError`, `CanExecute`
-async\_method: Suffix with `Async` =\> `GetDataAsync()`
+boolean\property/variable: is/has/can/should =\> `IsLoading`, `HasError`, `CanExecute`
+async\method: Suffix with `Async` =\> `GetDataAsync()`
 }
 
 ## Learnings Protocol
