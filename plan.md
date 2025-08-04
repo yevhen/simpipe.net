@@ -425,48 +425,6 @@ public async Task Pipeline_HandlesBoundedCapacity()
 
 ---
 
-### Increment 11: Dynamic Batching
-**Outcome**: Batch size adjusts based on throughput
-
-**Test First**:
-```csharp
-[Test]
-public async Task DynamicBatch_AdjustsBatchSize()
-{
-    var batchSizes = new List<int>();
-    
-    var pipeline = new PipelineBuilder<int>()
-        .DynamicBatch()
-        .Action(batch => batchSizes.Add(batch.Length))
-        .Build();
-    
-    // Fast burst
-    for (int i = 0; i < 100; i++)
-        await pipeline.SendAsync(i);
-    
-    await Task.Delay(200);
-    
-    // Slow trickle
-    for (int i = 0; i < 10; i++)
-    {
-        await pipeline.SendAsync(i);
-        await Task.Delay(50);
-    }
-    
-    await pipeline.CompleteAsync();
-    
-    // Should have larger batches during burst
-    var firstBatches = batchSizes.Take(3).Average();
-    var lastBatches = batchSizes.Skip(Math.Max(0, batchSizes.Count - 3)).Average();
-    
-    Assert.Greater(firstBatches, lastBatches);
-}
-```
-
-**Implementation**: Adaptive batch sizing based on arrival rate
-
----
-
 ### Increment 13: Metrics & Monitoring
 **Outcome**: Built-in metrics for monitoring pipeline health
 
@@ -509,7 +467,6 @@ public async Task Pipeline_TracksMetrics()
 - Each test covers exactly one behavior
 - Tests are independent and can run in any order
 - Use real time delays sparingly (prefer TaskCompletionSource)
-- Mock external dependencies
 - Test names describe expected behavior
 - Arrange-Act-Assert pattern
 - No test should take more than 100ms
@@ -528,9 +485,3 @@ public async Task Pipeline_TracksMetrics()
 1. Backward compatibility (this is a major version change)
 2. Feature parity with TPL Dataflow (we want simplicity)
 3. Supporting every edge case (80/20 rule)
-
-## Timeline
-
-Each increment should take approximately 1-2 hours to implement with tests. The entire migration can be completed in 2-3 days of focused work.
-
-Total: 13 increments = ~13-26 hours of implementation time.
