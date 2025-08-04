@@ -2,6 +2,11 @@ using System.Threading.Channels;
 
 namespace Simpipe.Net.Tests;
 
+public class TestItem
+{
+    public int Value { get; set; }
+}
+
 [TestFixture]
 public class ActionBlockFixture
 {
@@ -85,5 +90,34 @@ public class ActionBlockFixture
         await store.RunAsync();
         
         Assert.That(result, Is.EqualTo(42));
+    }
+
+    [Test]
+    public async Task TransformBlock_MutatesInPlace()
+    {
+        var input = Channel.CreateUnbounded<TestItem>();
+        var final = Channel.CreateUnbounded<TestItem>();
+        var result = new List<TestItem>();
+        
+        var transform = new ActionBlock<TestItem>(
+            input.Reader,
+            action: item => item.Value *= 2,
+            done: item => final.Writer.WriteAsync(item).AsTask());
+            
+        var collect = new ActionBlock<TestItem>(
+            final.Reader,
+            action: item => result.Add(item),
+            done: _ => { });
+        
+        await input.Writer.WriteAsync(new TestItem { Value = 21 });
+        input.Writer.Complete();
+        
+        // Run transform first to completion to ensure final channel gets completed
+        await transform.RunAsync();
+        final.Writer.Complete();
+        
+        await collect.RunAsync();
+        
+        Assert.That(result[0].Value, Is.EqualTo(42));
     }
 }
