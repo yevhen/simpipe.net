@@ -2,6 +2,29 @@ using System.Threading.Channels;
 
 namespace Simpipe.Net;
 
+internal record Selector(Func<Task<bool>> Waiter, Action Execute);
+
+internal static class Select
+{
+    public static async Task Run(Selector[] selectors, Func<bool> runUntil)
+    {
+        var tasks = selectors.Select(s => s.Waiter()).ToArray();
+        
+        while (runUntil())
+        {
+            var completedTask = await Task.WhenAny(tasks);
+            if (!await completedTask)
+                break;
+            
+            var index = Array.IndexOf(tasks, completedTask);
+            var selector = selectors[index];
+
+            selector.Execute();
+            tasks[index] = selector.Waiter();
+        }
+    }
+}
+
 public class BatchBlock<T>(ChannelReader<T> input, int batchSize, TimeSpan flushInterval, Action<T[]> done)
 {
     readonly LinkedList<T> batch = [];
@@ -9,50 +32,31 @@ public class BatchBlock<T>(ChannelReader<T> input, int batchSize, TimeSpan flush
 
     public async Task RunAsync()
     {
-        await CollectBatch();
+        await FlushBatch();
         FlushBuffer();
     }
 
-    async Task CollectBatch()
+    async Task FlushBatch()
     {
-        var inputTask = input.WaitToReadAsync().AsTask();
-        var timerTask = flushTimer.WaitForNextTickAsync().AsTask();
-
-        while (!input.Completion.IsCompleted)
-        {
-            var completedTask = await Task.WhenAny(inputTask, timerTask);
-            if (completedTask == inputTask)
-            {
-                if (!await inputTask)
-                    break;
-
-                while (input.TryRead(out var item))
-                    FlushBySize(item);
-
-                inputTask = input.WaitToReadAsync().AsTask();
-            }
-            else if (completedTask == timerTask)
-            {
-                if (!await timerTask) 
-                    break;
-                
-                FlushBuffer();
-                
-                timerTask = flushTimer.WaitForNextTickAsync().AsTask();
-            }
-        }
+        await Select.Run([
+            new Selector(() => input.WaitToReadAsync().AsTask(), ProcessInput),
+            new Selector(() => flushTimer.WaitForNextTickAsync().AsTask(), FlushBuffer)
+        ], () => !input.Completion.IsCompleted);
         
         flushTimer.Dispose();
     }
 
-    void FlushBySize(T item)
+    void ProcessInput()
     {
-        batch.AddLast(item);
+        while (input.TryRead(out var item))
+        {
+            batch.AddLast(item);
 
-        if (batch.Count < batchSize) 
-            return;
+            if (batch.Count < batchSize)
+                return;
 
-        FlushBuffer();
+            FlushBuffer();
+        }
     }
 
     void FlushBuffer()
