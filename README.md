@@ -29,7 +29,7 @@ Use Simpipe.Net when you need:
 ## Features
 
 - ✅ Fluent API for pipeline construction
-- ✅ Multiple specialized pipe types (Action, Batch, DynamicBatch, Group)
+- ✅ Multiple specialized pipe types (Action, Batch)
 - ✅ Async/await support throughout
 - ✅ Automatic completion propagation
 - ✅ Back-pressure handling via bounded capacity
@@ -141,40 +141,6 @@ var pipe = new PipeBuilder<LogEntry>()
     })
     .BatchTriggerPeriod(TimeSpan.FromSeconds(5)) // Flush incomplete batches after 5 seconds
     .ToPipe();
-```
-
-### DynamicBatchPipe
-
-Adaptively batches items based on throughput, ideal for variable workloads.
-
-```csharp
-var pipe = new PipeBuilder<Message>()
-    .DynamicBatch(async messages => {
-        await SendMessageBatch(messages);
-    })
-    .MaxBatchSize(1000)
-    .InitialBatchInterval(TimeSpan.FromMilliseconds(100))
-    .MaxBatchInterval(TimeSpan.FromSeconds(1))
-    .ToPipe();
-```
-
-### GroupPipe
-
-Distributes items across multiple child pipes for parallel processing paths.
-
-```csharp
-var groupPipe = new GroupPipeOptions<Request>()
-    .BoundedCapacity(1000)
-    .ToPipe();
-
-// Add child pipes with optional predicates
-var apiPipe = CreateApiPipe();
-var dbPipe = CreateDatabasePipe();
-
-groupPipe.Add(apiPipe, (request, pipe) => request.Type == RequestType.Api);
-groupPipe.Add(dbPipe, (request, pipe) => request.Type == RequestType.Database);
-
-pipeline.Add(groupPipe);
 ```
 
 ### BlockPipeAdapter
@@ -299,12 +265,7 @@ All pipes support these configuration options:
    .Batch(100, items => BulkInsert(items)) // Process 100 at a time
    ```
 
-4. **Use DynamicBatchPipe for Variable Workloads**: It adapts to throughput changes
-   ```csharp
-   .DynamicBatch(items => ProcessBatch(items))
-   ```
-
-5. **Monitor Performance**: Track pipeline metrics for optimization
+4. **Monitor Performance**: Track pipeline metrics for optimization
    ```csharp
    if (pipe.InputCount > pipe.OutputCount * 2)
        Console.WriteLine("Potential bottleneck detected");
@@ -328,7 +289,7 @@ All pipes support these configuration options:
 
 - Larger batches reduce overhead but increase latency
 - Smaller batches improve responsiveness but increase overhead
-- Use `DynamicBatchPipe` when optimal size varies
+- Consider your workload characteristics when choosing batch sizes
 
 ## Examples
 
