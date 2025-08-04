@@ -143,7 +143,7 @@ We use TDD to write code.
 4.  Repeat until all tests pass.
 5.  Commit after each green state.
 6.  Tests and quality checks (build + analysis) must pass with zero warnings/errors.
-7.  **When writing a failing test TDD style, the code should be in a compilable state.** This means creating the necessary files, classes, and methods the test invokes, but with a placeholder implementation like `throw new NotImplementedException();`.
+7.  **When writing a failing test TDD style, the code should be in a compilable state.** This means creating the necessary files, classes, and methods the test invokes, but with a placeholder implementation like `return 0;` but relevant to the context. The main idea here is to "test the test."
 
 ## Core Rules
 
