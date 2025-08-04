@@ -1,5 +1,4 @@
 using System.Threading.Channels;
-using Simpipe.Channels;
 
 namespace Simpipe.Net.Tests;
 
@@ -22,9 +21,9 @@ public class ActionBlockFixture
         input.Writer.Complete();
         
         await block.RunAsync();
-        
-        Assert.AreEqual(42, processed);
-        Assert.AreEqual(42, completed);
+
+        Assert.That(processed, Is.EqualTo(42));
+        Assert.That(completed, Is.EqualTo(42));
     }
 
     [Test]
@@ -37,14 +36,14 @@ public class ActionBlockFixture
         
         var block = new ActionBlock<int>(
             channel.Reader,
-            async item => {
+            parallelism: 3, 
+            action: async item => {
                 Interlocked.Increment(ref currentConcurrency);
                 maxConcurrency = Math.Max(maxConcurrency, currentConcurrency);
                 await Task.Delay(50);
                 Interlocked.Increment(ref processedCount);
                 Interlocked.Decrement(ref currentConcurrency);
-            },
-            parallelism: 3);
+            });
         
         // Write 5 items
         for (int i = 0; i < 5; i++)
@@ -52,9 +51,9 @@ public class ActionBlockFixture
         channel.Writer.Complete();
         
         await block.RunAsync();
-        
-        Assert.AreEqual(5, processedCount);
-        Assert.GreaterOrEqual(maxConcurrency, 2);
-        Assert.LessOrEqual(maxConcurrency, 3);
+
+        Assert.That(processedCount, Is.EqualTo(5));
+        Assert.That(maxConcurrency, Is.GreaterThanOrEqualTo(2));
+        Assert.That(maxConcurrency, Is.LessThanOrEqualTo(3));
     }
 }

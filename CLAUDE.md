@@ -386,3 +386,7 @@ async\method: Suffix with `Async` =\> `GetDataAsync()`
 - Only log unique, non-obvious information.
 - Focus on future value for similar tasks.
 - Subagents MUST update this file before reporting success.
+
+# CODING STYLE MEMORIES
+
+- NEVER use underscores for private/internal members
