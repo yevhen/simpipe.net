@@ -3,26 +3,32 @@ using Simpipe.Net.Utility;
 
 namespace Simpipe.Net;
 
-public class BatchBlock<T>(ChannelReader<T> input, int batchSize, TimeSpan flushInterval, Action<T[]> done)
+public class BatchBlock<T>
 {
+    readonly Channel<T> input;
     readonly LinkedList<T> batch = [];
-    readonly PeriodicTimer flushTimer = new(flushInterval);
+    readonly PeriodicTimer flushTimer;
+    readonly int batchSize;
+    readonly Action<T[]> done;
+    readonly Task processor;
 
-    public async Task RunAsync()
+    public BatchBlock(int capacity, int batchSize, TimeSpan flushInterval, Action<T[]> done)
     {
-        await ProcessItems();
-        FlushBuffer();
-        Dispose();
-    }
+        this.batchSize = batchSize;
+        this.done = done;
 
-    Task ProcessItems() => Select
-        .When(() => input.WaitToReadAsync().AsTask(), ProcessInput)
-        .When(() => flushTimer.WaitForNextTickAsync().AsTask(), ProcessTimer)
-        .RunUntil(() => !input.Completion.IsCompleted);
+        flushTimer = new PeriodicTimer(flushInterval);
+        input = Channel.CreateBounded<T>(capacity);
+
+        processor = Select
+            .When(() => input.Reader.WaitToReadAsync().AsTask(), ProcessInput)
+            .When(() => flushTimer.WaitForNextTickAsync().AsTask(), ProcessTimer)
+            .RunUntil(() => !input.Reader.Completion.IsCompleted);
+    }
 
     void ProcessInput()
     {
-        while (input.TryRead(out var item))
+        while (input.Reader.TryRead(out var item))
             FlushBySize(item);
     }
 
@@ -36,7 +42,6 @@ public class BatchBlock<T>(ChannelReader<T> input, int batchSize, TimeSpan flush
         FlushBuffer();
     }
 
-
     void ProcessTimer() => FlushBuffer();
 
     void FlushBuffer()
@@ -47,5 +52,14 @@ public class BatchBlock<T>(ChannelReader<T> input, int batchSize, TimeSpan flush
         batch.Clear();
     }
 
-    void Dispose() => flushTimer.Dispose();
+    public async Task Send(T item) => await input.Writer.WriteAsync(item);
+
+    public async Task Complete()
+    {
+        input.Writer.Complete();
+        await processor;
+
+        flushTimer.Dispose();
+        FlushBuffer();
+    }
 }

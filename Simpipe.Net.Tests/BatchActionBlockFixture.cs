@@ -1,5 +1,4 @@
 using System.Threading.Channels;
-using NUnit.Framework;
 
 namespace Simpipe.Net.Tests;
 
@@ -9,37 +8,26 @@ public class BatchActionBlockFixture
     [Test]
     public async Task BatchActionBlock_ProcessesBatchesWithAction()
     {
-        var input = Channel.CreateUnbounded<int>();
-        var processedItems = new List<int>();
-        var lockObj = new object();
-        
-        // Composite: batches items, then processes each batch, then unpacks to individual items
-        var batchAction = new BatchActionBlock<int>(
-            input.Reader,
-            batchSize: 3,
+        const int itemCount = 4;
+        var batches = Channel.CreateUnbounded<string[]>();
+
+        var batchActionBlock = new BatchActionBlock<string>(
+            capacity: 4,
+            batchSize: 2,
+            batchFlushInterval: TimeSpan.FromMilliseconds(100),
             parallelism: 2,
-            batchAction: batch => {
-                // Process the entire batch (e.g., bulk database operation)
-                Console.WriteLine($"Processing batch of {batch.Length}");
-                for (int i = 0; i < batch.Length; i++)
-                    batch[i] *= 10; // Transform each item in batch
-            },
-            done: item => {
-                lock (lockObj)
-                {
-                    processedItems.Add(item);
-                }
-            }); // Called for each individual item
+            action: async batch => await batches.Writer.WriteAsync(batch),
+            done: _ => Task.CompletedTask);
         
-        for (int i = 1; i <= 7; i++)
-            await input.Writer.WriteAsync(i);
-        input.Writer.Complete();
+        for (var i = 1; i <= itemCount; i++)
+            await batchActionBlock.Send($"i{i}");
         
-        await batchAction.RunAsync();
-        
-        Assert.AreEqual(7, processedItems.Count);
-        Assert.Contains(10, processedItems); // 1 * 10
-        Assert.Contains(20, processedItems); // 2 * 10  
-        Assert.Contains(70, processedItems); // 7 * 10
+        var batch1 = await batches.Reader.ReadAsync();
+        var batch2 = await batches.Reader.ReadAsync();
+
+        await batchActionBlock.Complete();
+
+        Assert.That(batch1, Is.EqualTo(new[] {"i1", "i2"}));
+        Assert.That(batch2, Is.EqualTo(new[] {"i3", "i4"}));
     }
 }

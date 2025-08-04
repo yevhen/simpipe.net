@@ -2,27 +2,37 @@ using System.Threading.Channels;
 
 namespace Simpipe.Net;
 
-public class ActionBlock<T>(ChannelReader<T> reader, int parallelism, Func<T, Task> action, Func<T, Task>? done = null)
+public class ActionBlock<T>
 {
-    readonly Func<T, Task> done = done ?? (_ => Task.CompletedTask);
+    readonly Func<T, Task> done;
+    readonly Channel<T> input;
+    readonly Func<T, Task> action;
+    readonly Task processor;
 
-    public ActionBlock(ChannelReader<T> reader, Action<T> action, Action<T> done)
-        : this(reader, parallelism: 1, action: action, done: done)
+    public ActionBlock(int capacity, Action<T> action, Action<T> done)
+        : this(capacity, parallelism: 1, action: action, done: done)
     {}
 
-    public ActionBlock(ChannelReader<T> reader, int parallelism, Action<T> action, Action<T>? done = null)
-        : this(reader, parallelism, 
-            item => { action(item); return Task.CompletedTask; }, 
+    public ActionBlock(int capacity, int parallelism, Action<T> action, Action<T>? done = null)
+        : this(capacity, parallelism,
+            item => { action(item); return Task.CompletedTask; },
             done != null ? item => { done(item); return Task.CompletedTask; } : null)
     {}
 
-    public Task RunAsync() => Task.WhenAll(Enumerable.Range(0, parallelism).Select(_ => Task.Run(ProcessChannel)));
+    public ActionBlock(int capacity, int parallelism, Func<T, Task> action, Func<T, Task>? done = null)
+    {
+        this.action = action;
+        this.done = done ?? (_ => Task.CompletedTask);
+
+        input = Channel.CreateBounded<T>(capacity);
+        processor = Task.WhenAll(Enumerable.Range(0, parallelism).Select(_ => Task.Run(ProcessChannel)));
+    }
 
     async Task ProcessChannel()
     {
-        while (await reader.WaitToReadAsync())
+        while (await input.Reader.WaitToReadAsync())
         {
-            if (reader.TryRead(out var item))
+            if (input.Reader.TryRead(out var item))
                 await ProcessItem(item);
         }
     }
@@ -31,5 +41,13 @@ public class ActionBlock<T>(ChannelReader<T> reader, int parallelism, Func<T, Ta
     {
         await action(item);
         await done(item);
+    }
+
+    public async Task Send(T item) => await input.Writer.WriteAsync(item);
+
+    public async Task Complete()
+    {
+        input.Writer.Complete();
+        await processor;
     }
 }
