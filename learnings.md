@@ -18,3 +18,9 @@
 - **NUnit analyzer warnings**: Many existing tests use classic Assert methods instead of constraint model - not critical but noted for future cleanup
 - **Build + test cycle**: Following strict TDD cycle (red-green-refactor) with immediate testing after each change ensures stability
 - **Git commit patterns**: Repository follows descriptive commit messages with implementation context
+
+## ActionBlock Implementation Insights
+
+- **In-place mutation support**: ActionBlock already supports in-place mutation of reference types - no additional implementation needed for Increment 4
+- **Constructor usage**: ActionBlock requires both action and done parameters for mutation scenarios, using the 3-parameter constructor
+- **Channel completion**: Must complete intermediate channels manually after blocks finish to avoid deadlocks in pipeline scenarios

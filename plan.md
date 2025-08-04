@@ -152,7 +152,7 @@ public async Task Pipeline_LinksTwoBlocks()
 
 ---
 
-### Increment 4: Transform Block (In-Place Mutation)
+### Increment 4: Transform Block (In-Place Mutation) ✅ COMPLETED
 **Outcome**: A block that transforms items in-place (following Go pattern)
 
 **Test First**:
