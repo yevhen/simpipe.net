@@ -24,3 +24,10 @@
 - **In-place mutation support**: ActionBlock already supports in-place mutation of reference types - no additional implementation needed for Increment 4
 - **Constructor usage**: ActionBlock requires both action and done parameters for mutation scenarios, using the 3-parameter constructor
 - **Channel completion**: Must complete intermediate channels manually after blocks finish to avoid deadlocks in pipeline scenarios
+
+## BatchBlock Implementation Insights
+
+- **Batching strategy**: Simple List<T> accumulation with ToArray() when full or at completion works efficiently for most batch sizes
+- **Final batch handling**: Critical to emit incomplete final batches when input channel completes - don't lose data
+- **Primary constructor pattern**: BatchBlock<T>(reader, batchSize, done) provides clean API for pure batching without action processing
+- **Done callback signature**: Action<T[]> callback receives arrays, not individual items, distinguishing it from ActionBlock's item-by-item processing

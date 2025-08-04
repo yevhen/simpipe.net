@@ -186,7 +186,7 @@ public async Task TransformBlock_MutatesInPlace()
 
 ---
 
-### Increment 5: Pure Batch Block (T → T[])
+### Increment 5: Pure Batch Block (T → T[]) ✅ COMPLETED
 **Outcome**: A block that ONLY batches items, doesn't process them
 
 **Test First**:
