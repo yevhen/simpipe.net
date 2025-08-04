@@ -28,4 +28,30 @@ public class BatchBlockFixture
         Assert.That(batches[1], Is.EqualTo(new[] {4, 5, 6})); 
         Assert.That(batches[2], Is.EqualTo(new[] {7}));
     }
+
+    [Test]
+    public async Task BatchBlock_FlushesOnTimeout()
+    {
+        var input = Channel.CreateUnbounded<int>();
+        var batches = new List<int[]>();
+        
+        var batch = new BatchBlock<int>(
+            input.Reader,
+            batchSize: 10,
+            flushInterval: TimeSpan.FromMilliseconds(100),
+            done: b => batches.Add(b));
+        
+        await input.Writer.WriteAsync(1);
+        await input.Writer.WriteAsync(2);
+        
+        var batchTask = batch.RunAsync();
+        
+        await Task.Delay(150);
+        input.Writer.Complete();
+        
+        await batchTask;
+        
+        Assert.That(batches.Count, Is.EqualTo(1)); 
+        Assert.That(batches[0], Is.EqualTo(new[] {1, 2}));
+    }
 }
