@@ -64,14 +64,12 @@ public class ActionBlockFixture
         var intermediate = Channel.CreateUnbounded<int>();
         var result = 0;
         
-        // First block: multiply by 2, send to intermediate channel
         var multiply = new ActionBlock<int>(
             input.Reader,
             parallelism: 1,
-            action: item => { /* Note: in-place mutation doesn't work with value types */ return Task.CompletedTask; },
+            action: _ => Task.CompletedTask,
             done: async item => await intermediate.Writer.WriteAsync(item * 2));
             
-        // Second block: store result  
         var store = new ActionBlock<int>(
             intermediate.Reader,
             parallelism: 1,
