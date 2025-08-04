@@ -23,21 +23,18 @@ public class BatchBlock<T>(ChannelReader<T> input, int batchSize, TimeSpan flush
             var completedTask = await Task.WhenAny(inputTask, timerTask);
             if (completedTask == inputTask)
             {
-                if (await inputTask)
-                {
-                    while (input.TryRead(out var item))
-                        FlushBySize(item);
-                    
-                    inputTask = input.WaitToReadAsync().AsTask();
-                }
-                else
-                {
+                if (!await inputTask)
                     break;
-                }
+
+                while (input.TryRead(out var item))
+                    FlushBySize(item);
+
+                inputTask = input.WaitToReadAsync().AsTask();
             }
             else if (completedTask == timerTask)
             {
-                if (!await timerTask) continue;
+                if (!await timerTask) 
+                    break;
                 
                 FlushBuffer();
                 

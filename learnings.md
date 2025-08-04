@@ -31,3 +31,6 @@
 - **Final batch handling**: Critical to emit incomplete final batches when input channel completes - don't lose data
 - **Primary constructor pattern**: BatchBlock<T>(reader, batchSize, done) provides clean API for pure batching without action processing
 - **Done callback signature**: Action<T[]> callback receives arrays, not individual items, distinguishing it from ActionBlock's item-by-item processing
+- **Timer-based flushing**: System.Threading.Timer with proper disposal in finally block provides reliable time-based batch flushing
+- **Constructor overloading**: Multiple constructors for backward compatibility while adding time-based flushing functionality
+- **Timer lifecycle**: Start timer on first item, reset after flush, dispose in finally block - handles race conditions between size and time-based flushing
