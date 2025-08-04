@@ -116,7 +116,7 @@ public async Task ActionBlock_ProcessesInParallel()
 
 ---
 
-### Increment 3: Basic Pipeline with Linking via Done Callback
+### Increment 3: Basic Pipeline with Linking via Done Callback ✅ COMPLETED
 **Outcome**: Can link two blocks together using Done callbacks
 
 **Test First**:
