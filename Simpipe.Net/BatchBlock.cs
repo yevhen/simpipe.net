@@ -2,60 +2,55 @@ using System.Threading.Channels;
 
 namespace Simpipe.Net;
 
-public class BatchBlock<T>
+public class BatchBlock<T>(ChannelReader<T> input, int batchSize, TimeSpan flushInterval, Action<T[]> done)
 {
-    readonly ChannelReader<T> reader;
-    readonly int batchSize;
-    readonly Action<T[]> done;
-    readonly TimeSpan? flushInterval;
     readonly LinkedList<T> batch = [];
-    readonly Timer? flushTimer;
-    
-    public BatchBlock(ChannelReader<T> reader, int batchSize, Action<T[]> done)
-    {
-        this.reader = reader;
-        this.batchSize = batchSize;
-        this.done = done;
-        this.flushInterval = null;
-        this.flushTimer = null;
-    }
-    
-    public BatchBlock(ChannelReader<T> reader, int batchSize, TimeSpan flushInterval, Action<T[]> done)
-    {
-        this.reader = reader;
-        this.batchSize = batchSize;
-        this.done = done;
-        this.flushInterval = flushInterval;
-        this.flushTimer = new Timer(OnFlushTimer, null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
-    }
-    
+    readonly PeriodicTimer flushTimer = new(flushInterval);
+
     public async Task RunAsync()
     {
-        try
-        {
-            while (await reader.WaitToReadAsync())
-            {
-                while (reader.TryRead(out var item)) 
-                    FlushBySize(item);
-            }
+        await CollectBatch();
+        FlushBuffer();
+    }
 
-            FlushBuffer();
-        }
-        finally
+    async Task CollectBatch()
+    {
+        var inputTask = input.WaitToReadAsync().AsTask();
+        var timerTask = flushTimer.WaitForNextTickAsync().AsTask();
+
+        while (!input.Completion.IsCompleted)
         {
-            flushTimer?.Dispose();
+            var completedTask = await Task.WhenAny(inputTask, timerTask);
+            if (completedTask == inputTask)
+            {
+                if (await inputTask)
+                {
+                    while (input.TryRead(out var item))
+                        FlushBySize(item);
+                    
+                    inputTask = input.WaitToReadAsync().AsTask();
+                }
+                else
+                {
+                    break;
+                }
+            }
+            else if (completedTask == timerTask)
+            {
+                if (!await timerTask) continue;
+                
+                FlushBuffer();
+                
+                timerTask = flushTimer.WaitForNextTickAsync().AsTask();
+            }
         }
+        
+        flushTimer.Dispose();
     }
 
     void FlushBySize(T item)
     {
         batch.AddLast(item);
-
-        // Start timer on first item if flush interval is configured
-        if (batch.Count == 1 && flushInterval.HasValue)
-        {
-            flushTimer?.Change(flushInterval.Value, Timeout.InfiniteTimeSpan);
-        }
 
         if (batch.Count < batchSize) 
             return;
@@ -66,17 +61,8 @@ public class BatchBlock<T>
     void FlushBuffer()
     {
         if (batch.Count > 0)
-        {
-            // Stop timer when flushing
-            flushTimer?.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
             done(batch.ToArray());
-        }
         
         batch.Clear();
-    }
-    
-    void OnFlushTimer(object? state)
-    {
-        FlushBuffer();
     }
 }
