@@ -63,9 +63,9 @@ namespace Simpipe.Tests.Pipes
 
             await Complete(item1, item2);
         
-            Assert.AreEqual(2, items.Count);
-            Assert.AreEqual(item1, items[0]);
-            Assert.AreEqual(item2, items[1]);
+            Assert.That(items.Count, Is.EqualTo(2));
+            Assert.That(items[0], Is.EqualTo(item1));
+            Assert.That(items[1], Is.EqualTo(item2));
         }
 
         [Test]
@@ -84,7 +84,7 @@ namespace Simpipe.Tests.Pipes
             await Send("foo");
             await executed.Task;
             
-            Assert.AreEqual(1, items.Count);
+            Assert.That(items.Count, Is.EqualTo(1));
             await Complete();
         }
 
@@ -96,9 +96,9 @@ namespace Simpipe.Tests.Pipes
 
             await Complete("foo", "bar", "buzz");
         
-            Assert.AreEqual(2, items.Count);
-            Assert.AreEqual(2, items[0].Length);
-            Assert.AreEqual(1, items[1].Length);
+            Assert.That(items.Count, Is.EqualTo(2));
+            Assert.That(items[0].Length, Is.EqualTo(2));
+            Assert.That(items[1].Length, Is.EqualTo(1));
         }
 
         [Test]

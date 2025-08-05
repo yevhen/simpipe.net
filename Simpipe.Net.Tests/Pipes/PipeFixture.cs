@@ -47,13 +47,13 @@ namespace Simpipe.Tests.Pipes
             await Send(item);
 
             SpinWait.SpinUntil(() => pipeExecuted, TimeSpan.FromSeconds(3));
-            Assert.AreEqual("foo", item.Data);
+            Assert.That(item.Data, Is.EqualTo("foo"));
             Assert.False(nextPipeExecuted);
 
             blocker.SetResult();
             SpinWait.SpinUntil(() => nextPipeExecuted, TimeSpan.FromSeconds(2));
 
-            Assert.AreEqual("foobar", item.Data);
+            Assert.That(item.Data, Is.EqualTo("foobar"));
         }
 
         [Test]
@@ -88,7 +88,7 @@ namespace Simpipe.Tests.Pipes
             await Complete();
 
             Assert.IsNull(pipeReceived);
-            Assert.AreSame(item, nextPipeReceived);
+            Assert.That(nextPipeReceived, Is.SameAs(item));
         }
 
         [Test]
@@ -116,7 +116,7 @@ namespace Simpipe.Tests.Pipes
             await routed.Completion;
 
             Assert.Null(nextPipeReceived);
-            Assert.AreSame(item, routedPipeReceived);
+            Assert.That(routedPipeReceived, Is.SameAs(item));
         }
 
         [Test]
@@ -130,7 +130,7 @@ namespace Simpipe.Tests.Pipes
             var item = CreateItem();
             await Complete(item);
 
-            Assert.AreSame(item, nextPipeReceived);
+            Assert.That(nextPipeReceived, Is.SameAs(item));
         }
 
         [Test]
@@ -150,7 +150,7 @@ namespace Simpipe.Tests.Pipes
             routed.Complete();
             await routed.Completion;
             
-            Assert.AreSame(item, routedPipeReceived);
+            Assert.That(routedPipeReceived, Is.SameAs(item));
         }
         
         [Test]
@@ -176,7 +176,7 @@ namespace Simpipe.Tests.Pipes
             routed2.Complete();
             await routed2.Completion;
 
-            Assert.AreSame(item, routed1PipeReceived);
+            Assert.That(routed1PipeReceived, Is.SameAs(item));
             Assert.Null(routed2PipeReceived);
         }
 
@@ -360,8 +360,8 @@ namespace Simpipe.Tests.Pipes
             WaitCompletion(p1);
             WaitCompletion(p2);
             
-            CollectionAssert.AreEqual(items, received1);
-            CollectionAssert.AreEqual(items, received2);
+            Assert.That(received1, Is.EqualTo(items));
+            Assert.That(received2, Is.EqualTo(items));
 
             async Task SendItems()
             {

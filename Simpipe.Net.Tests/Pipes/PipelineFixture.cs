@@ -19,7 +19,7 @@ namespace Simpipe.Tests.Pipes
             AddPipe("1");
             var ex = Assert.Throws<Exception>(() => AddPipe("1"));
             
-            Assert.AreEqual("The pipe with id 1 already exists", ex!.Message);
+            Assert.That(ex!.Message, Is.EqualTo("The pipe with id 1 already exists"));
         }
 
         [Test]
@@ -76,7 +76,7 @@ namespace Simpipe.Tests.Pipes
             var ex = Assert.ThrowsAsync<PipeNotFoundException>(
                 async () => await Send("boom"));
 
-            Assert.AreEqual("The pipe with id 'boom' does not exist", ex!.Message);
+            Assert.That(ex!.Message, Is.EqualTo("The pipe with id 'boom' does not exist"));
 
             AssertSendNotExecuted(first);
             AssertSendNotExecuted(second);
@@ -110,7 +110,7 @@ namespace Simpipe.Tests.Pipes
             var second = AddPipe("1");
             var third = AddPipe("A");
             
-            CollectionAssert.AreEqual(new[] { first, second, third }, pipeline.ToArray());
+            Assert.That(pipeline.ToArray(), Is.EqualTo(new[] { first, second, third }));
         }
 
         [Test]
@@ -176,7 +176,7 @@ namespace Simpipe.Tests.Pipes
             Assert.True(pipe.SendNextExecuted);
         }
         
-        static void AssertNext(PipeMock pipe, PipeMock? next) => Assert.AreEqual(next, pipe.Next);
+        static void AssertNext(PipeMock pipe, PipeMock? next) => Assert.That(pipe.Next, Is.EqualTo(next));
 
         static void AssertSendExecuted(PipeMock pipe) => Assert.True(pipe.SendExecuted);
 
