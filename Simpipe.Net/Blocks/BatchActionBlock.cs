@@ -1,6 +1,6 @@
 namespace Simpipe.Net;
 
-public class BatchActionBlock<T>
+public class BatchActionBlock<T> : IBlock<T>
 {
     readonly BatchBlock<T> batchBlock;
     readonly ActionBlock<T[]> actionBlock;

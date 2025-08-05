@@ -2,7 +2,7 @@ using System.Threading.Channels;
 
 namespace Simpipe.Net;
 
-public class ActionBlock<T>
+public class ActionBlock<T> : IBlock<T>
 {
     readonly Func<T, Task> done;
     readonly Channel<T> input;

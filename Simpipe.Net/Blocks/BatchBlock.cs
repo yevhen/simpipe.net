@@ -3,7 +3,7 @@ using Simpipe.Net.Utility;
 
 namespace Simpipe.Net;
 
-public class BatchBlock<T>
+public class BatchBlock<T> : IBlock<T>
 {
     readonly Channel<T> input;
     readonly LinkedList<T> batch = [];
