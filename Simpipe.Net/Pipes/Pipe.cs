@@ -37,6 +37,7 @@ namespace Youscan.Core.Pipes
         readonly Func<T, bool>? filter;
         readonly PipeAction<T> action;
         volatile int working;
+        volatile int outputCount;
 
         protected readonly PipeAction<T> blockAction;
 
@@ -67,7 +68,14 @@ namespace Youscan.Core.Pipes
             ? Block 
             : RouteTarget(item);
 
-        protected IBlock<T> RouteTarget(T item)
+        protected async Task RouteItem(T item)
+        {
+            Interlocked.Increment(ref outputCount);
+            await RouteTarget(item).Send(item);
+            Interlocked.Decrement(ref outputCount);
+        }
+
+        IBlock<T> RouteTarget(T item)
         {
             var target = Route(item) ?? Next;
             return target == null 
@@ -101,7 +109,7 @@ namespace Youscan.Core.Pipes
         }
 
         public abstract int InputCount { get; }
-        public abstract int OutputCount { get; }
+        public int OutputCount => outputCount;
         public virtual int WorkingCount => working;
 
         public void Complete() => BlockComplete();
@@ -121,6 +129,7 @@ namespace Youscan.Core.Pipes
         protected abstract Task BlockSend(T item);
         protected abstract void BlockComplete();
         protected abstract Task BlockCompletion();
+
         public abstract IBlock<T> Block { get; }
     }
 }

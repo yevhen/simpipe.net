@@ -1,11 +1,4 @@
-﻿using System;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Threading.Tasks.Dataflow;
-
-using NUnit.Framework;
-
-namespace Youscan.Core.Pipes
+﻿namespace Youscan.Core.Pipes
 {
     [TestFixture]
     public class ActionPipeFixture
@@ -56,40 +49,6 @@ namespace Youscan.Core.Pipes
             Assert.That(next.Received.Contains(42));
         }
 
-        [Test]
-        public async Task Available_capacity_respects_output_count()
-        {
-            int entered = 0;
-            var enteredNext = new ManualResetEventSlim(false);
-
-            Setup(_ =>
-            {
-                entered++;
-            }, boundedCapacity: 3);
-
-            var next = Builder.Action(_ =>
-            {
-                enteredNext.Set();
-                return Task.Delay(TimeSpan.FromDays(1));
-            })
-            .BoundedCapacity(1)
-            .ToPipe();
-
-            block.LinkTo(next);
-            
-            await Send(1); // blocked in next
-            await Send(2);
-            await Send(3);
-
-            enteredNext.Wait();
-            SpinWait.SpinUntil(() => entered == 3);
-
-            Assert.AreEqual(0, block.InputCount);
-            Assert.AreEqual(0, block.WorkingCount);
-            Assert.AreEqual(2, block.OutputCount);
-            Assert.AreEqual(1, block.AvailableCapacity);
-        }
-
         async Task Complete(params int[] items)
         {
             await Send(items);
@@ -110,9 +69,6 @@ namespace Youscan.Core.Pipes
 
         void Setup(Func<int, Task> action) => 
             block = Builder.Action(action).ToPipe();
-
-        void Setup(Action<int> action, int boundedCapacity = 1) => 
-            block = Builder.Action(action).BoundedCapacity(boundedCapacity).ToPipe();
 
         static PipeBuilder<int> Builder => new();
     }

@@ -7,26 +7,17 @@ namespace Youscan.Core.Pipes
         readonly ActionBlock<T> block;
         readonly int boundedCapacity;
         readonly TaskCompletionSource completion = new();
-        volatile int outputCount;
 
         public ActionPipe(ActionPipeOptions<T> options) : base(options, options.Action())
         {
             boundedCapacity = options.BoundedCapacity() ?? options.DegreeOfParallelism() * 2;
 
-            block = new ActionBlock<T>(boundedCapacity, options.DegreeOfParallelism(), Execute, async item =>
-            {
-                Interlocked.Increment(ref outputCount);
-                await RouteTarget(item).Send(item);
-                Interlocked.Decrement(ref outputCount);
-            });
+            block = new ActionBlock<T>(boundedCapacity, options.DegreeOfParallelism(), Execute, RouteItem);
 
             Block = block;
         }
 
         public override int InputCount => block.InputCount;
-        public override int OutputCount => outputCount;
-        
-        public int AvailableCapacity => Math.Max(0, boundedCapacity - InputCount - WorkingCount - OutputCount);
 
         async Task<T> Execute(T item)
         {

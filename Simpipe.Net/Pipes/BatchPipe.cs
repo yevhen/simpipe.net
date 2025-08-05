@@ -6,8 +6,7 @@ namespace Youscan.Core.Pipes
     {
         readonly BatchActionBlock<T> block;
         readonly TaskCompletionSource completion = new();
-        volatile int outputCount;
-        
+
         public BatchPipe(BatchPipeOptions<T> options) : base(options, options.Action())
         {
             block = new BatchActionBlock<T>(
@@ -16,18 +15,12 @@ namespace Youscan.Core.Pipes
                 options.BatchTriggerPeriod() != TimeSpan.Zero ? options.BatchTriggerPeriod() : Timeout.InfiniteTimeSpan,
                 options.DegreeOfParallelism(),
                 Execute,
-                async items =>
-                {
-                    Interlocked.Increment(ref outputCount);
-                    await RouteTarget(items).Send(items);
-                    Interlocked.Decrement(ref outputCount);
-                });
+                RouteItem);
 
             Block = block;
         }
 
         public override int InputCount => block.InputCount;
-        public override int OutputCount => outputCount;
 
         async Task<T[]> Execute(T[] item)
         {
