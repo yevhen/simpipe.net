@@ -14,7 +14,6 @@
         public Func<T, IPipe<T>?>? Route() => route;
     }
 
-
     public sealed class ActionPipeOptions<T> : PipeOptions<T>
     {
         readonly PipeAction<T> action;

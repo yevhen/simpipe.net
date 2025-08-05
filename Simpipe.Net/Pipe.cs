@@ -26,15 +26,6 @@ namespace Youscan.Core.Pipes
     public static class PipeExtensions
     {
         public static void LinkTo<T>(this IPipe<T> pipe, IPipe<T> next) => pipe.Next = next;
-        
-        public static void LinkTo<T>(this IPipe<T> pipe, ITargetBlock<T> next, PipeOptions<T>? options = null) => 
-            pipe.LinkTo(new BlockPipeAdapter<T>(options ?? new PipeOptions<T>(), next));
-
-        public static void LinkTo<T>(this IPipe<T> pipe, ITargetBlock<T> block, Func<T, bool> predicate, PipeOptions<T>? options = null)
-        {
-            var adapter = new BlockPipeAdapter<T>(options ?? new PipeOptions<T>(), block);
-            pipe.LinkTo(item => predicate(item) ? adapter : null);
-        }
     }
 
     public abstract class Pipe<T> : IPipe<T>

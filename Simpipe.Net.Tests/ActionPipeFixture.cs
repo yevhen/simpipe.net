@@ -57,55 +57,6 @@ namespace Youscan.Core.Pipes
         }
 
         [Test]
-        public async Task Available_capacity_respects_input_count()
-        {
-            var entered = new AutoResetEvent(false);
-            var blocker = new AutoResetEvent(false);
-            var enteredNext = new AutoResetEvent(false);
-            
-            Setup(_ =>
-            {
-                entered.Set();
-                blocker.WaitOne();
-            }, 
-            boundedCapacity: 3);
-
-            block.LinkTo(new ActionBlock<int>(_ => enteredNext.Set()));
-
-            await Send(42); // in-flight (blocked)
-            entered.WaitOne();
-
-            Assert.AreEqual(0, block.InputCount);
-            Assert.AreEqual(1, block.WorkingCount);
-            Assert.AreEqual(2, block.AvailableCapacity);
-
-            await Send(42); // buffered
-            await Send(42); // buffered
-
-            Assert.AreEqual(2, block.InputCount);
-            Assert.AreEqual(1, block.WorkingCount);
-            Assert.AreEqual(0, block.AvailableCapacity);
-
-            blocker.Set();
-            entered.WaitOne();
-            enteredNext.WaitOne();
-
-            Assert.AreEqual(1, block.InputCount);
-            Assert.AreEqual(1, block.WorkingCount);
-            Assert.AreEqual(0, block.OutputCount);
-            Assert.AreEqual(1, block.AvailableCapacity);
-
-            blocker.Set();
-            entered.WaitOne();
-            enteredNext.WaitOne();
-
-            Assert.AreEqual(0, block.InputCount);
-            Assert.AreEqual(1, block.WorkingCount);
-            Assert.AreEqual(0, block.OutputCount);
-            Assert.AreEqual(2, block.AvailableCapacity);
-        }
-
-        [Test]
         public async Task Available_capacity_respects_output_count()
         {
             int entered = 0;

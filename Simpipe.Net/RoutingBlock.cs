@@ -17,11 +17,3 @@ public class RoutingBlock<T> : ITargetBlock<T>
 
     public Task Completion => Task.CompletedTask;
 }
-
-public static class RoutingBlockExtensions
-{
-    public static void LinkTo<T>(this ISourceBlock<T> source, Func<T, ITargetBlock<T>> route)
-    {
-        source.LinkTo(new RoutingBlock<T>(route));
-    }
-}
