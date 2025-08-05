@@ -11,6 +11,7 @@ public class BatchBlock<T>
     readonly int batchSize;
     readonly Action<T[]> done;
     readonly Task processor;
+    volatile bool batchFlushed;
 
     public BatchBlock(int capacity, int batchSize, TimeSpan flushInterval, Action<T[]> done)
     {
@@ -40,9 +41,19 @@ public class BatchBlock<T>
             return;
 
         FlushBuffer();
+        batchFlushed = true;
     }
 
-    void ProcessTimer() => FlushBuffer();
+    void ProcessTimer()
+    {
+        if (batchFlushed)
+        {
+            batchFlushed = false;
+            return;
+        }
+
+        FlushBuffer();
+    }
 
     void FlushBuffer()
     {

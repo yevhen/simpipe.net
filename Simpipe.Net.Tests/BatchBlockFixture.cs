@@ -45,4 +45,30 @@ public class BatchBlockFixture
 
         await batchBlock.Complete();
     }
+
+    [Test]
+    public async Task BatchBlock_DoesNotFlushByTimerIfRecentlyFlushedBySize()
+    {
+        var batches = new List<int[]>();
+        
+        var batchBlock = new BatchBlock<int>(
+            capacity: 10,
+            batchSize: 2,
+            flushInterval: TimeSpan.FromMilliseconds(500),
+            done: batch => batches.Add(batch));
+        
+        await batchBlock.Send(1);
+        await batchBlock.Send(2);
+        await batchBlock.Send(3);
+        
+        await Task.Delay(750);
+
+        Assert.That(batches.Count, Is.EqualTo(1));
+        Assert.That(batches[0], Is.EqualTo(new[] {1, 2}));
+
+        await batchBlock.Complete();
+        
+        Assert.That(batches.Count, Is.EqualTo(2));
+        Assert.That(batches[1], Is.EqualTo(new[] {3}));
+    }
 }
