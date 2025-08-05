@@ -69,7 +69,9 @@
         protected async Task RouteItem(T item)
         {
             Interlocked.Increment(ref outputCount);
+
             await RouteTarget(item).Send(item);
+
             Interlocked.Decrement(ref outputCount);
         }
 
