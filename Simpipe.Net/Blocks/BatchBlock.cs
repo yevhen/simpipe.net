@@ -1,7 +1,7 @@
 using System.Threading.Channels;
-using Simpipe.Net.Utility;
+using Simpipe.Utility;
 
-namespace Simpipe.Net;
+namespace Simpipe;
 
 public class BatchBlock<T> : IBlock<T>
 {

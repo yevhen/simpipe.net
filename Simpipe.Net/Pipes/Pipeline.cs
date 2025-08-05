@@ -1,6 +1,6 @@
 ﻿using System.Collections;
 
-namespace Youscan.Core.Pipes
+namespace Simpipe.Pipes
 {
     public class Pipeline<T> : IEnumerable<IPipe<T>>
     {

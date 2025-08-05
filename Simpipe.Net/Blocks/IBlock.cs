@@ -1,4 +1,4 @@
-namespace Simpipe.Net;
+namespace Simpipe;
 
 public interface IBlock<in T>
 {

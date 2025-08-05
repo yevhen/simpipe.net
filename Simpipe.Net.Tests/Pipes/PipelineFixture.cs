@@ -1,10 +1,6 @@
-﻿using System;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using Simpipe.Pipes;
 
-using NUnit.Framework;
-
-namespace Youscan.Core.Pipes
+namespace Simpipe.Tests.Pipes
 {
     [TestFixture]
     public class PipelineFixture

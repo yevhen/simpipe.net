@@ -1,6 +1,6 @@
 using System.Threading.Channels;
 
-namespace Simpipe.Net;
+namespace Simpipe;
 
 public class ActionBlock<T> : IBlock<T>
 {

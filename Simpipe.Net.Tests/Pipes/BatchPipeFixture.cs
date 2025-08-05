@@ -1,4 +1,6 @@
-﻿namespace Youscan.Core.Pipes
+﻿using Simpipe.Pipes;
+
+namespace Simpipe.Tests.Pipes
 {
     [TestFixture]
     public class BatchPipeFixture

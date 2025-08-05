@@ -1,7 +1,8 @@
 ﻿using System.Collections.Concurrent;
 using System.Diagnostics;
+using Simpipe.Pipes;
 
-namespace Youscan.Core.Pipes
+namespace Simpipe.Tests.Pipes
 {
     [TestFixture]
     public class PipeFixture

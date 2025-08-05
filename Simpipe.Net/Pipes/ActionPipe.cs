@@ -1,6 +1,4 @@
-﻿using Simpipe.Net;
-
-namespace Youscan.Core.Pipes
+﻿namespace Simpipe.Pipes
 {
     public class ActionPipe<T> : Pipe<T>
     {

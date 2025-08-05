@@ -1,4 +1,4 @@
-namespace Simpipe.Net;
+namespace Simpipe;
 
 public class BatchActionBlock<T> : IBlock<T>
 {

@@ -1,4 +1,4 @@
-﻿namespace Youscan.Core.Pipes
+﻿namespace Simpipe.Pipes
 {
     public class PipeOptions<T>
     {

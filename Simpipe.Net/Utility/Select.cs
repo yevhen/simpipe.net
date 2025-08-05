@@ -1,4 +1,4 @@
-namespace Simpipe.Net.Utility;
+namespace Simpipe.Utility;
 
 internal record Selector(Func<Task<bool>> Waiter, Action Execute);
 

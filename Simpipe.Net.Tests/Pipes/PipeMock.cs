@@ -1,6 +1,6 @@
-﻿using Simpipe.Net;
+﻿using Simpipe.Pipes;
 
-namespace Youscan.Core.Pipes;
+namespace Simpipe.Tests.Pipes;
 
 public class PipeMock : PipeMock<int>
 {

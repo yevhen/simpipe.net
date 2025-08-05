@@ -1,4 +1,4 @@
-namespace Simpipe.Net.Tests;
+namespace Simpipe.Tests.Blocks;
 
 [TestFixture]
 public class BatchBlockFixture

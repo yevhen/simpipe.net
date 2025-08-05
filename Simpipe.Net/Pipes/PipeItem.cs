@@ -1,4 +1,4 @@
-﻿namespace Youscan.Core.Pipes
+﻿namespace Simpipe.Pipes
 {
     public readonly record struct PipeItem<T>
     {
