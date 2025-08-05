@@ -47,8 +47,8 @@ namespace Simpipe.Tests.Pipes
             await Send(item);
 
             SpinWait.SpinUntil(() => pipeExecuted, TimeSpan.FromSeconds(3));
-            SpinWait.SpinUntil(() => nextPipeExecuted, TimeSpan.FromSeconds(2));
             Assert.AreEqual("foo", item.Data);
+            Assert.False(nextPipeExecuted);
 
             blocker.SetResult();
             SpinWait.SpinUntil(() => nextPipeExecuted, TimeSpan.FromSeconds(2));
