@@ -1,6 +1,6 @@
 namespace Simpipe.Utility;
 
-internal record Selector(Func<Task<bool>> Waiter, Action Execute);
+internal record Selector(Func<Task<bool>> Waiter, Func<Task> Execute);
 
 internal static class Select
 {
@@ -8,7 +8,7 @@ internal static class Select
     {
         readonly List<Selector> selectors = [];
 
-        public SelectorBuilder When(Func<Task<bool>> waiter, Action execute)
+        public SelectorBuilder When(Func<Task<bool>> waiter, Func<Task> execute)
         {
             selectors.Add(new Selector(waiter, execute));
             return this;
@@ -30,12 +30,12 @@ internal static class Select
                 var index = Array.IndexOf(tasks, completedTask);
                 var selector = selectors[index];
 
-                selector.Execute();
+                await selector.Execute();
                 tasks[index] = selector.Waiter();
             }
         }
     }
 
-    public static SelectorBuilder When(Func<Task<bool>> waiter, Action execute) =>
+    public static SelectorBuilder When(Func<Task<bool>> waiter, Func<Task> execute) =>
         new SelectorBuilder().When(waiter, execute);
 }

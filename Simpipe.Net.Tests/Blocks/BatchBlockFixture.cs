@@ -12,7 +12,11 @@ public class BatchBlockFixture
             capacity: 10,
             batchSize: 3,
             flushInterval: TimeSpan.FromMinutes(1),
-            done: batch => batches.Add(batch));
+            done: batch =>
+            {
+                batches.Add(batch);
+                return Task.CompletedTask;
+            });
         
         for (var i = 1; i <= 7; i++)
             await batchBlock.Send(i);
@@ -33,7 +37,11 @@ public class BatchBlockFixture
             capacity: 10,
             batchSize: 10,
             flushInterval: TimeSpan.FromMilliseconds(100),
-            done: b => batches.Add(b));
+            done: batch =>
+            {
+                batches.Add(batch);
+                return Task.CompletedTask;
+            });
         
         await batchBlock.Send(1);
         await batchBlock.Send(2);
@@ -55,7 +63,11 @@ public class BatchBlockFixture
             capacity: 10,
             batchSize: 2,
             flushInterval: TimeSpan.FromMilliseconds(500),
-            done: batch => batches.Add(batch));
+            done: batch =>
+            {
+                batches.Add(batch);
+                return Task.CompletedTask;
+            });
         
         await batchBlock.Send(1);
         await batchBlock.Send(2);

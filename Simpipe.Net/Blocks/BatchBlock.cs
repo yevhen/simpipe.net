@@ -9,12 +9,12 @@ public class BatchBlock<T> : IBlock<T>
     readonly LinkedList<T> batch = [];
     readonly PeriodicTimer flushTimer;
     readonly int batchSize;
-    readonly Action<T[]> done;
+    readonly Func<T[], Task> done;
     readonly Task processor;
     readonly CancellationToken cancellationToken;
     volatile bool batchFlushed;
 
-    public BatchBlock(int capacity, int batchSize, TimeSpan flushInterval, Action<T[]> done, CancellationToken cancellationToken = default)
+    public BatchBlock(int capacity, int batchSize, TimeSpan flushInterval, Func<T[], Task> done, CancellationToken cancellationToken = default)
     {
         this.batchSize = batchSize;
         this.done = done;
@@ -31,24 +31,24 @@ public class BatchBlock<T> : IBlock<T>
 
     public int InputCount => input.Reader.Count;
 
-    void ProcessInput()
+    async Task ProcessInput()
     {
         while (input.Reader.TryRead(out var item))
-            FlushBySize(item);
+            await FlushBySize(item);
     }
 
-    void FlushBySize(T item)
+    async Task FlushBySize(T item)
     {
         batch.AddLast(item);
 
         if (batch.Count < batchSize)
             return;
 
-        FlushBuffer();
+        await FlushBuffer();
         batchFlushed = true;
     }
 
-    void ProcessTimer()
+    async Task ProcessTimer()
     {
         if (batchFlushed)
         {
@@ -56,13 +56,13 @@ public class BatchBlock<T> : IBlock<T>
             return;
         }
 
-        FlushBuffer();
+        await FlushBuffer();
     }
 
-    void FlushBuffer()
+    async Task FlushBuffer()
     {
         if (batch.Count > 0)
-            done(batch.ToArray());
+            await done(batch.ToArray());
         
         batch.Clear();
     }
@@ -75,6 +75,6 @@ public class BatchBlock<T> : IBlock<T>
         await processor;
 
         flushTimer.Dispose();
-        FlushBuffer();
+        await FlushBuffer();
     }
 }
