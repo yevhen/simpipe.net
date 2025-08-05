@@ -29,6 +29,8 @@ public class BatchActionBlock<T> : IBlock<T>
             });
     }
 
+    public int InputCount => batchBlock.InputCount;
+
     public async Task Send(T item) => await batchBlock.Send(item);
 
     public async Task Complete()

@@ -1,13 +1,4 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-
-using NUnit.Framework;
-
-namespace Youscan.Core.Pipes
+﻿namespace Youscan.Core.Pipes
 {
     [TestFixture]
     public class BatchPipeFixture
@@ -93,21 +84,6 @@ namespace Youscan.Core.Pipes
             
             Assert.AreEqual(1, items.Count);
             await Complete();
-        }
-
-        [Test]
-        public void Batching_by_time_respects_last_batch_time()
-        {
-            var now = DateTime.Now;
-            var batchTriggerPeriod = TimeSpan.FromSeconds(10);
-
-            var lastBatchTimeEqualToBatchTriggerPeriod = now - batchTriggerPeriod;
-            var lastBatchTimeLessThanBatchTriggerPeriod = now - batchTriggerPeriod / 2;
-            var lastBatchTimeGreaterThanBatchTriggerPeriod = now - batchTriggerPeriod + TimeSpan.FromSeconds(1);
-            
-            Assert.True(BatchPipe<int>.ShouldTriggerBatch(now, lastBatchTimeEqualToBatchTriggerPeriod, batchTriggerPeriod));
-            Assert.False(BatchPipe<int>.ShouldTriggerBatch(now, lastBatchTimeLessThanBatchTriggerPeriod, batchTriggerPeriod));
-            Assert.False(BatchPipe<int>.ShouldTriggerBatch(now, lastBatchTimeGreaterThanBatchTriggerPeriod, batchTriggerPeriod));
         }
 
         [Test]

@@ -1,4 +1,4 @@
-﻿using System.Threading.Tasks.Dataflow;
+﻿using Simpipe.Net;
 
 namespace Youscan.Core.Pipes
 {
@@ -7,8 +7,8 @@ namespace Youscan.Core.Pipes
         string Id { get; }
         IPipe<T>? Next { get; set; }
         
-        ITargetBlock<T> Block { get; }
-        ITargetBlock<T> Target(T item);
+        IBlock<T> Block { get; }
+        IBlock<T> Target(T item);
 
         Task Send(T item);
         Task SendNext(T item);
@@ -63,15 +63,15 @@ namespace Youscan.Core.Pipes
             Interlocked.Add(ref working, -item.Size);
         }
 
-        public ITargetBlock<T> Target(T item) => FilterMatches(item) 
+        public IBlock<T> Target(T item) => FilterMatches(item)
             ? Block 
             : RouteTarget(item);
 
-        protected ITargetBlock<T> RouteTarget(T item)
+        protected IBlock<T> RouteTarget(T item)
         {
             var target = Route(item) ?? Next;
             return target == null 
-                ? DataflowBlock.NullTarget<T>() 
+                ? NullBlock<T>.Instance
                 : target.Target(item);
         }
 
@@ -121,6 +121,6 @@ namespace Youscan.Core.Pipes
         protected abstract Task BlockSend(T item);
         protected abstract void BlockComplete();
         protected abstract Task BlockCompletion();
-        public abstract ITargetBlock<T> Block { get; }
+        public abstract IBlock<T> Block { get; }
     }
 }

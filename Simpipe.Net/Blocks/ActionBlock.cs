@@ -28,6 +28,8 @@ public class ActionBlock<T> : IBlock<T>
         processor = Task.WhenAll(Enumerable.Range(0, parallelism).Select(_ => Task.Run(ProcessChannel)));
     }
 
+    public int InputCount => input.Reader.Count;
+
     async Task ProcessChannel()
     {
         while (await input.Reader.WaitToReadAsync())

@@ -27,6 +27,8 @@ public class BatchBlock<T> : IBlock<T>
             .RunUntil(() => !input.Reader.Completion.IsCompleted);
     }
 
+    public int InputCount => input.Reader.Count;
+
     void ProcessInput()
     {
         while (input.Reader.TryRead(out var item))

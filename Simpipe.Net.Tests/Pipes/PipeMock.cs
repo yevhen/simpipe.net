@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using System.Threading.Tasks.Dataflow;
+﻿using Simpipe.Net;
 
 namespace Youscan.Core.Pipes;
 
@@ -10,6 +7,17 @@ public class PipeMock : PipeMock<int>
     public PipeMock(string id)
         : base(id)
     {}
+}
+
+public class BlockMock<T>(Action<T> action) : IBlock<T>
+{
+    public Task Send(T item)
+    {
+        action(item);
+        return Task.CompletedTask;
+    }
+
+    public Task Complete() => Task.CompletedTask;
 }
 
 public class PipeMock<T> : IPipe<T>
@@ -29,11 +37,11 @@ public class PipeMock<T> : IPipe<T>
     public bool CompleteExecuted { get; private set; }
     public bool SendNextExecuted { get; set; }
 
-    public ITargetBlock<T> Block  => new ActionBlock<T>(x =>
+    public IBlock<T> Block  => new BlockMock<T>(x =>
     {
         Received.Add(x);
     });
-    public ITargetBlock<T> Target(T item) => Block;
+    public IBlock<T> Target(T item) => Block;
 
     public Task Send(T item)
     {
