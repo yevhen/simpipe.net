@@ -10,7 +10,7 @@
         {
             boundedCapacity = options.BoundedCapacity() ?? options.DegreeOfParallelism() * 2;
 
-            block = new ActionBlock<T>(boundedCapacity, options.DegreeOfParallelism(), Execute, RouteItem);
+            block = new ActionBlock<T>(boundedCapacity, options.DegreeOfParallelism(), Execute, RouteItem, options.CancellationToken());
 
             Block = block;
         }

@@ -8,31 +8,34 @@ public class ActionBlock<T> : IBlock<T>
     readonly Channel<T> input;
     readonly Func<T, Task> action;
     readonly Task processor;
+    readonly CancellationToken cancellationToken;
 
-    public ActionBlock(int capacity, Action<T> action, Action<T> done)
-        : this(capacity, parallelism: 1, action: action, done: done)
+    public ActionBlock(int capacity, Action<T> action, Action<T> done, CancellationToken cancellationToken = default)
+        : this(capacity, parallelism: 1, action: action, done: done, cancellationToken: cancellationToken)
     {}
 
-    public ActionBlock(int capacity, int parallelism, Action<T> action, Action<T>? done = null)
+    public ActionBlock(int capacity, int parallelism, Action<T> action, Action<T>? done = null, CancellationToken cancellationToken = default)
         : this(capacity, parallelism,
             item => { action(item); return Task.CompletedTask; },
-            done != null ? item => { done(item); return Task.CompletedTask; } : null)
+            done != null ? item => { done(item); return Task.CompletedTask; } : null,
+            cancellationToken)
     {}
 
-    public ActionBlock(int capacity, int parallelism, Func<T, Task> action, Func<T, Task>? done = null)
+    public ActionBlock(int capacity, int parallelism, Func<T, Task> action, Func<T, Task>? done = null, CancellationToken cancellationToken = default)
     {
         this.action = action;
         this.done = done ?? (_ => Task.CompletedTask);
+        this.cancellationToken = cancellationToken;
 
         input = Channel.CreateBounded<T>(capacity);
-        processor = Task.WhenAll(Enumerable.Range(0, parallelism).Select(_ => Task.Run(ProcessChannel)));
+        processor = Task.WhenAll(Enumerable.Range(0, parallelism).Select(_ => Task.Run(ProcessChannel, cancellationToken)));
     }
 
     public int InputCount => input.Reader.Count;
 
     async Task ProcessChannel()
     {
-        while (await input.Reader.WaitToReadAsync())
+        while (await input.Reader.WaitToReadAsync(cancellationToken))
         {
             if (input.Reader.TryRead(out var item))
                 await ProcessItem(item);
@@ -42,10 +45,12 @@ public class ActionBlock<T> : IBlock<T>
     async Task ProcessItem(T item)
     {
         await action(item);
-        await done(item);
+
+        if (!cancellationToken.IsCancellationRequested)
+            await done(item);
     }
 
-    public async Task Send(T item) => await input.Writer.WriteAsync(item);
+    public async Task Send(T item) => await input.Writer.WriteAsync(item, cancellationToken);
 
     public async Task Complete()
     {

@@ -13,7 +13,8 @@
                 options.BatchTriggerPeriod() != TimeSpan.Zero ? options.BatchTriggerPeriod() : Timeout.InfiniteTimeSpan,
                 options.DegreeOfParallelism(),
                 Execute,
-                RouteItem);
+                RouteItem,
+                options.CancellationToken());
 
             Block = block;
         }

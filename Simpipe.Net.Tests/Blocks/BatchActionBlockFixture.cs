@@ -14,7 +14,7 @@ public class BatchActionBlockFixture
         var batchActionBlock = new BatchActionBlock<string>(
             capacity: 4,
             batchSize: 2,
-            batchFlushInterval: TimeSpan.FromMilliseconds(100),
+            batchFlushInterval: TimeSpan.FromMinutes(1),
             parallelism: 2,
             action: async batch => await batches.Writer.WriteAsync(batch),
             done: _ => Task.CompletedTask);
