@@ -2,7 +2,7 @@
 
 namespace Simpipe.Pipes;
 
-public class Pipeline<T> : IEnumerable<Pipe<T>>
+public class Pipeline<T>(Func<T, Pipe<T>?>? defaultRoute = null) : IEnumerable<Pipe<T>>
 {
     Pipe<T>? head;
     Pipe<T>? last;
@@ -11,11 +11,6 @@ public class Pipeline<T> : IEnumerable<Pipe<T>>
 
     readonly Dictionary<string, Pipe<T>> pipesById = new();
     readonly List<Pipe<T>> pipes = [];
-
-    readonly Func<T, Pipe<T>?>? defaultRoute;
-
-    public Pipeline(Func<T, Pipe<T>?>? defaultRoute = null) =>
-        this.defaultRoute = defaultRoute;
 
     public void Add(Pipe<T> pipe)
     {
@@ -54,7 +49,7 @@ public class Pipeline<T> : IEnumerable<Pipe<T>>
 
     public async Task SendNext(T item, string id)
     {
-        if (id == null || !pipesById.TryGetValue(id, out var source))
+        if (!pipesById.TryGetValue(id, out var source))
             throw new Exception($"The pipe with id '{id}' does not exist");
 
         await source.SendNext(item);
@@ -78,9 +73,4 @@ public class Pipeline<T> : IEnumerable<Pipe<T>>
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }
 
-public class PipeNotFoundException: Exception
-{
-    public PipeNotFoundException(string message) : base(message)
-    {
-    }
-}
+public class PipeNotFoundException(string message) : Exception(message);
