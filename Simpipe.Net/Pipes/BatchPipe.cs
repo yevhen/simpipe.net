@@ -7,9 +7,6 @@ public sealed class BatchPipeOptions<T>(int batchSize, PipeAction<T> action) : P
     CancellationToken cancellationToken;
     int degreeOfParallelism = 1;
 
-    public int BatchSize() => batchSize;
-    public TimeSpan BatchTriggerPeriod() => batchTriggerPeriod;
-
     public BatchPipeOptions<T> Id(string value)
     {
         id = value;
@@ -48,17 +45,13 @@ public sealed class BatchPipeOptions<T>(int batchSize, PipeAction<T> action) : P
 
     public Pipe<T> ToPipe() => new(this, (execute, route) =>
         new BatchActionBlock<T>(
-            BoundedCapacity() ?? BatchSize(),
-            BatchSize(),
-            BatchTriggerPeriod() != TimeSpan.Zero ? BatchTriggerPeriod() : Timeout.InfiniteTimeSpan,
-            DegreeOfParallelism(),
+            boundedCapacity ?? batchSize,
+            batchSize,
+            batchTriggerPeriod != TimeSpan.Zero ? batchTriggerPeriod : Timeout.InfiniteTimeSpan,
+            degreeOfParallelism,
             items => execute(new PipeItem<T>(items)),
             route,
-            CancellationToken()));
+            cancellationToken));
 
     public static implicit operator Pipe<T>(BatchPipeOptions<T> options) => options.ToPipe();
-
-    public int? BoundedCapacity() => boundedCapacity;
-    public CancellationToken CancellationToken() => cancellationToken;
-    public int DegreeOfParallelism() => degreeOfParallelism;
 }

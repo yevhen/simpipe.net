@@ -39,8 +39,6 @@
         volatile int workingCount;
         volatile int outputCount;
 
-        internal readonly PipeAction<T> blockAction;
-
         public Pipe(PipeOptions<T> options, Func<Func<PipeItem<T>, Task>, Func<T, Task>, IBlock<T>> blockFactory)
         {
             Id = options.Id();
@@ -51,11 +49,11 @@
             if (route != null)
                 routes.Add(route);
 
-            blockAction = PipeAction<T>.For(ExecuteAction);
+            var blockAction = PipeAction<T>.For(ExecuteAction);
             Block = blockFactory(blockAction.Execute, RouteItem);
         }
 
-        public IBlock<T> Block { get; internal set; }
+        public IBlock<T> Block { get; }
 
         async Task ExecuteAction(PipeItem<T> item)
         {
@@ -70,7 +68,7 @@
             ? Block 
             : RouteTarget(item);
 
-        internal async Task RouteItem(T item)
+        async Task RouteItem(T item)
         {
             Interlocked.Increment(ref outputCount);
 

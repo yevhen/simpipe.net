@@ -44,15 +44,11 @@ public sealed class ActionPipeOptions<T>(PipeAction<T> action) : PipeOptions<T>(
 
     public Pipe<T> ToPipe() => new(this, (execute, router) =>
         new ActionBlock<T>(
-            BoundedCapacity() ?? DegreeOfParallelism() * 2,
-            DegreeOfParallelism(),
+            boundedCapacity ?? degreeOfParallelism * 2,
+            degreeOfParallelism,
             item => execute(new PipeItem<T>(item)),
             router,
-            CancellationToken()));
+            cancellationToken));
 
     public static implicit operator Pipe<T>(ActionPipeOptions<T> options) => options.ToPipe();
-
-    public int? BoundedCapacity() => boundedCapacity;
-    public CancellationToken CancellationToken() => cancellationToken;
-    public int DegreeOfParallelism() => degreeOfParallelism;
 }
