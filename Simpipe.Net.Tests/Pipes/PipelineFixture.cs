@@ -168,16 +168,19 @@ public class PipelineFixture
 
         var completion = pipeline.Complete();
         Assert.That(completion.IsCompleted, Is.False);
+        Assert.That(pipeline.Completion.IsCompleted, Is.False);
 
         first.AsBlockMock().SetComplete();
         await Task.Delay(10);
         Assert.That(completion.IsCompleted, Is.False);
+        Assert.That(pipeline.Completion.IsCompleted, Is.False);
 
         second.AsBlockMock().SetComplete();
         await Task.Delay(10);
         await completion;
 
         Assert.That(completion.IsCompleted, Is.True);
+        Assert.That(pipeline.Completion.IsCompleted, Is.True);
     }
 
     [Test]
