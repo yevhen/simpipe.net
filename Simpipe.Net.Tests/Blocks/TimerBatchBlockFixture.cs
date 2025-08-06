@@ -1,3 +1,5 @@
+using Simpipe.Blocks;
+
 namespace Simpipe.Tests.Blocks;
 
 [TestFixture]

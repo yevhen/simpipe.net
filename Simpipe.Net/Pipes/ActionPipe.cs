@@ -1,4 +1,6 @@
-﻿namespace Simpipe.Pipes;
+﻿using Simpipe.Blocks;
+
+namespace Simpipe.Pipes;
 
 public sealed class ActionPipeBuilder<T>(PipeAction<T> action)
 {

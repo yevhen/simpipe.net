@@ -1,4 +1,6 @@
-﻿namespace Simpipe.Pipes;
+﻿using Simpipe.Blocks;
+
+namespace Simpipe.Pipes;
 
 public sealed class BatchPipeBuilder<T>(int batchSize, PipeAction<T> action)
 {

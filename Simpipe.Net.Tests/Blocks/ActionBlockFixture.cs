@@ -1,3 +1,5 @@
+using Simpipe.Blocks;
+
 namespace Simpipe.Tests.Blocks;
 
 [TestFixture]
@@ -11,8 +13,17 @@ public class ActionBlockFixture
         
         var block = new ActionBlock<int>(
             capacity: 1,
-            action: item => processed = item,
-            done: item => completed = item);
+            parallelism: 1,
+            action: item =>
+            {
+                processed = item;
+                return Task.CompletedTask;
+            },
+            done: item =>
+            {
+                completed = item;
+                return Task.CompletedTask;
+            });
 
         await block.Send(42);
         await block.Complete();
@@ -31,7 +42,7 @@ public class ActionBlockFixture
         var block = new ActionBlock<int>(
             capacity: 10,
             parallelism: 3, 
-            action: async item => {
+            action: async _ => {
                 Interlocked.Increment(ref currentConcurrency);
                 maxConcurrency = Math.Max(maxConcurrency, currentConcurrency);
                 await Task.Delay(50);

@@ -1,136 +1,133 @@
-﻿namespace Simpipe.Pipes
+﻿using Simpipe.Blocks;
+
+namespace Simpipe.Pipes;
+
+public class Pipe<T>
 {
-    public static class PipeExtensions
+    public static ActionPipeBuilder<T> Action(Action<T> action) => new(PipeAction<T>.For(action));
+    public static ActionPipeBuilder<T> Action(Func<T, Task> action) => new(PipeAction<T>.For(action));
+
+    public static BatchPipeBuilder<T> Batch(int batchSize, Action<T[]> action) => new(batchSize, PipeAction<T>.For(action));
+    public static BatchPipeBuilder<T> Batch(int batchSize, Func<T[], Task> action) => new(batchSize, PipeAction<T>.For(action));
+
+    public string Id { get; }
+    public Pipe<T>? Next { get; private set; }
+
+    readonly List<Func<T, Pipe<T>?>> routes = [];
+    readonly Func<T, bool>? filter;
+    readonly PipeAction<T> action;
+    readonly TaskCompletionSource completion = new();
+
+    volatile int workingCount;
+    volatile int outputCount;
+
+    public Pipe(PipeOptions<T> options, Func<Func<PipeItem<T>, Task>, Func<T, Task>, IBlock<T>> blockFactory)
     {
-        public static void LinkNext<T>(this Pipe<T> pipe, Pipe<T> next) => pipe.Next = next;
+        Id = options.Id;
+        filter = options.Filter;
+        action = options.Action;
+
+        var route = options.Route;
+        if (route != null)
+            routes.Add(route);
+
+        var blockAction = PipeAction<T>.For(ExecuteAction);
+        Block = blockFactory(blockAction.Execute, RouteItem);
     }
 
-    public class Pipe<T>
+    IBlock<T> Block { get; }
+
+    async Task ExecuteAction(PipeItem<T> item)
     {
-        public static ActionPipeBuilder<T> Action(Action<T> action) => new(PipeAction<T>.For(action));
-        public static ActionPipeBuilder<T> Action(Func<T, Task> action) => new(PipeAction<T>.For(action));
+        Interlocked.Add(ref workingCount, item.Size);
 
-        public static BatchPipeBuilder<T> Batch(int batchSize, Action<T[]> action) => new(batchSize, PipeAction<T>.For(action));
-        public static BatchPipeBuilder<T> Batch(int batchSize, Func<T[], Task> action) => new(batchSize, PipeAction<T>.For(action));
+        await action.Execute(item);
 
-        public string Id { get; }
-        public virtual Pipe<T>? Next { get; set; }
+        Interlocked.Add(ref workingCount, -item.Size);
+    }
 
-        readonly List<Func<T, Pipe<T>?>> routes = new();
-        readonly Func<T, bool>? filter;
-        readonly PipeAction<T> action;
-        readonly TaskCompletionSource completion = new();
+    IBlock<T> Target(T item) => FilterMatches(item)
+        ? Block
+        : RouteTarget(item);
 
-        volatile int workingCount;
-        volatile int outputCount;
+    async Task RouteItem(T item)
+    {
+        Interlocked.Increment(ref outputCount);
 
-        public Pipe(PipeOptions<T> options, Func<Func<PipeItem<T>, Task>, Func<T, Task>, IBlock<T>> blockFactory)
+        await RouteTarget(item).Send(item);
+
+        Interlocked.Decrement(ref outputCount);
+    }
+
+    IBlock<T> RouteTarget(T item)
+    {
+        var target = Route(item) ?? Next;
+        return target == null
+            ? NullBlock<T>.Instance
+            : target.Target(item);
+    }
+
+    Pipe<T>? Route(T item) => routes
+        .Select(route => route(item))
+        .FirstOrDefault(pipe => pipe != null);
+
+    public async Task Send(T item)
+    {
+        if (FilterMatches(item))
         {
-            Id = options.Id;
-            filter = options.Filter;
-            action = options.Action;
-
-            var route = options.Route;
-            if (route != null)
-                routes.Add(route);
-
-            var blockAction = PipeAction<T>.For(ExecuteAction);
-            Block = blockFactory(blockAction.Execute, RouteItem);
+            await SendThis(item);
+            return;
         }
 
-        public IBlock<T> Block { get; }
+        await SendNext(item);
+    }
 
-        async Task ExecuteAction(PipeItem<T> item)
+    bool FilterMatches(T item) => filter == null || filter(item);
+
+    Task SendThis(T item) => BlockSend(item);
+
+    public async Task SendNext(T item)
+    {
+        if (Next != null)
+            await Next.Send(item);
+    }
+
+    public int InputCount => Block.InputCount;
+    public int OutputCount => outputCount;
+    public int WorkingCount => workingCount;
+
+    public void Complete() => BlockComplete();
+    public Task Completion => AwaitCompletion();
+
+    async Task AwaitCompletion()
+    {
+        try
         {
-            Interlocked.Add(ref workingCount, item.Size);
-        
-            await action.Execute(item);
-
-            Interlocked.Add(ref workingCount, -item.Size);
+            await BlockCompletion();
         }
+        catch (TaskCanceledException) {}
+    }
 
-        public IBlock<T> Target(T item) => FilterMatches(item)
-            ? Block 
-            : RouteTarget(item);
+    public void LinkTo(Func<T, Pipe<T>?> route) => routes.Add(route);
+    public void LinkNext(Pipe<T>? next) => Next = next;
 
-        async Task RouteItem(T item)
-        {
-            Interlocked.Increment(ref outputCount);
+    Task BlockSend(T item) => Block.Send(item);
 
-            await RouteTarget(item).Send(item);
-
-            Interlocked.Decrement(ref outputCount);
-        }
-
-        IBlock<T> RouteTarget(T item)
-        {
-            var target = Route(item) ?? Next;
-            return target == null 
-                ? NullBlock<T>.Instance
-                : target.Target(item);
-        }
-
-        Pipe<T>? Route(T item) => routes
-            .Select(route => route(item))
-            .FirstOrDefault(pipe => pipe != null);
-
-        public async Task Send(T item)
-        {
-            if (FilterMatches(item))
-            {
-                await SendThis(item);
-                return;
-            }
-
-            await SendNext(item);
-        }
-
-        bool FilterMatches(T item) => filter == null || filter(item);
-
-        Task SendThis(T item) => BlockSend(item);
-
-        public async Task SendNext(T item)
-        {
-            if (Next != null)
-                await Next.Send(item);
-        }
-
-        public int InputCount => Block.InputCount;
-        public int OutputCount => outputCount;
-        public int WorkingCount => workingCount;
-
-        public void Complete() => BlockComplete();
-        public Task Completion => AwaitCompletion();
-
-        async Task AwaitCompletion()
+    void BlockComplete()
+    {
+        _ = Task.Run(async () =>
         {
             try
             {
-                await BlockCompletion();
+                await Block.Complete();
+                completion.TrySetResult();
             }
-            catch (TaskCanceledException) {}
-        }
-
-        public virtual void LinkTo(Func<T, Pipe<T>?> route) => routes.Add(route);
-
-        Task BlockSend(T item) => Block.Send(item);
-
-        void BlockComplete()
-        {
-            _ = Task.Run(async () =>
+            catch (Exception e)
             {
-                try
-                {
-                    await Block.Complete();
-                    completion.TrySetResult();
-                }
-                catch (Exception e)
-                {
-                    completion.TrySetException(e);
-                }
-            });
-        }
-
-        Task BlockCompletion() => completion.Task;
+                completion.TrySetException(e);
+            }
+        });
     }
+
+    Task BlockCompletion() => completion.Task;
 }

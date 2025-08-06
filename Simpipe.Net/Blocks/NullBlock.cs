@@ -1,4 +1,4 @@
-namespace Simpipe;
+namespace Simpipe.Blocks;
 
 public class NullBlock<T> : IBlock<T>
 {

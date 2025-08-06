@@ -1,6 +1,6 @@
 using System.Threading.Channels;
 
-namespace Simpipe;
+namespace Simpipe.Blocks;
 
 public class ActionBlock<T> : IBlock<T>
 {
@@ -10,18 +10,12 @@ public class ActionBlock<T> : IBlock<T>
     readonly Task processor;
     readonly CancellationToken cancellationToken;
 
-    public ActionBlock(int capacity, Action<T> action, Action<T> done, CancellationToken cancellationToken = default)
-        : this(capacity, parallelism: 1, action: action, done: done, cancellationToken: cancellationToken)
-    {}
-
-    public ActionBlock(int capacity, int parallelism, Action<T> action, Action<T>? done = null, CancellationToken cancellationToken = default)
-        : this(capacity, parallelism,
-            item => { action(item); return Task.CompletedTask; },
-            done != null ? item => { done(item); return Task.CompletedTask; } : null,
-            cancellationToken)
-    {}
-
-    public ActionBlock(int capacity, int parallelism, Func<T, Task> action, Func<T, Task>? done = null, CancellationToken cancellationToken = default)
+    public ActionBlock(
+        int capacity,
+        int parallelism,
+        Func<T, Task> action,
+        Func<T, Task>? done = null,
+        CancellationToken cancellationToken = default)
     {
         this.action = action;
         this.done = done ?? (_ => Task.CompletedTask);
