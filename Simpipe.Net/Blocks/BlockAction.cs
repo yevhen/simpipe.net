@@ -2,6 +2,10 @@
 
 public class BlockAction<T>(Func<BlockItem<T>, Task> action)
 {
+    public Func<BlockItem<T>, Task> InnerAction => action;
+
+    public static BlockAction<T> Noop() => new(_ => Task.CompletedTask);
+
     public static BlockAction<T> For(Action<T> action) => new(item =>
     {
         action(item);

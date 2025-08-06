@@ -1,4 +1,5 @@
 using System.Threading.Channels;
+using Simpipe.Pipes;
 
 namespace Simpipe.Blocks;
 
@@ -6,7 +7,7 @@ public class ActionBlock<T> : IBlock<T>
 {
     readonly Func<T, Task> done;
     readonly Channel<T> input;
-    readonly Func<T, Task> action;
+    readonly BlockAction<T> action;
     readonly Task processor;
     readonly CancellationToken cancellationToken;
 
@@ -17,7 +18,7 @@ public class ActionBlock<T> : IBlock<T>
         Func<T, Task>? done = null,
         CancellationToken cancellationToken = default)
     {
-        this.action = action;
+        this.action = BlockAction<T>.For(action);
         this.done = done ?? (_ => Task.CompletedTask);
         this.cancellationToken = cancellationToken;
 
@@ -38,7 +39,7 @@ public class ActionBlock<T> : IBlock<T>
 
     async Task ProcessItem(T item)
     {
-        await action(item);
+        await action.Execute(new BlockItem<T>(item));
 
         if (!cancellationToken.IsCancellationRequested)
             await done(item);
