@@ -39,11 +39,11 @@
         volatile int workingCount;
         volatile int outputCount;
 
-        protected readonly PipeAction<T> blockAction;
+        internal readonly PipeAction<T> blockAction;
 
-        internal Pipe(PipeOptions<T> options, PipeAction<T>? action = null)
+        public Pipe(PipeOptions<T> options, PipeAction<T> action)
         {
-            this.action = action ?? PipeAction<T>.None();
+            this.action = action;
 
             Id = options.Id();
             filter = options.Filter();
@@ -54,6 +54,8 @@
 
             blockAction = PipeAction<T>.For(ExecuteAction);
         }
+
+        public IBlock<T> Block { get; internal set; }
 
         async Task ExecuteAction(PipeItem<T> item)
         {
@@ -68,7 +70,7 @@
             ? Block 
             : RouteTarget(item);
 
-        protected async Task RouteItem(T item)
+        internal async Task RouteItem(T item)
         {
             Interlocked.Increment(ref outputCount);
 
@@ -147,7 +149,5 @@
         }
 
         Task BlockCompletion() => completion.Task;
-
-        public virtual IBlock<T> Block { get; }
     }
 }

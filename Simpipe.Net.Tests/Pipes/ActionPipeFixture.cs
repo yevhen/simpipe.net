@@ -5,7 +5,7 @@ namespace Simpipe.Tests.Pipes
     [TestFixture]
     public class ActionPipeFixture
     {
-        ActionPipe<int> block = null!;
+        Pipe<int> pipe = null!;
         
         [Test]
         public async Task Executes_action()
@@ -43,7 +43,7 @@ namespace Simpipe.Tests.Pipes
             });
 
             var next = new PipeMock("next");
-            block.LinkTo(next);
+            pipe.LinkTo(next);
             
             await Complete(42);
             SpinWait.SpinUntil(() => next.Received.Count > 0, TimeSpan.FromSeconds(2));
@@ -60,17 +60,17 @@ namespace Simpipe.Tests.Pipes
         async Task Send(params int[] items)
         {
             foreach (var item in items)
-                await block.Send(item);
+                await pipe.Send(item);
         }
 
         async Task Complete()
         {
-            block.Complete();
-            await block.Completion;
+            pipe.Complete();
+            await pipe.Completion;
         }
 
         void Setup(Func<int, Task> action) => 
-            block = Builder.Action(action).ToPipe();
+            pipe = Builder.Action(action).ToPipe();
 
         static PipeBuilder<int> Builder => new();
     }

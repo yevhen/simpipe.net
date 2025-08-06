@@ -5,7 +5,7 @@ namespace Simpipe.Tests.Pipes
     [TestFixture]
     public class BatchPipeFixture
     {
-        BatchPipe<string> block = null!;
+        Pipe<string> pipe = null!;
         
         [Test]
         public async Task Executes_action()
@@ -43,7 +43,7 @@ namespace Simpipe.Tests.Pipes
             });
 
             var next = new PipeMock<string>("next");
-            block.LinkTo(next);
+            pipe.LinkTo(next);
             
             await Complete("foo");
             SpinWait.SpinUntil(() => next.Received.Count > 0, TimeSpan.FromSeconds(2));
@@ -118,12 +118,12 @@ namespace Simpipe.Tests.Pipes
 
             entered.WaitOne();
 
-            Assert.That(block.InputCount, Is.EqualTo(0));
+            Assert.That(pipe.InputCount, Is.EqualTo(0));
 
             await Send("1");
             await Send("2");
 
-            Assert.That(block.InputCount, Is.EqualTo(2));
+            Assert.That(pipe.InputCount, Is.EqualTo(2));
         }
 
         async Task Complete(params string[] items)
@@ -135,26 +135,26 @@ namespace Simpipe.Tests.Pipes
         async Task Send(params string[] items)
         {
             foreach (var item in items)
-                await block.Send(item);
+                await pipe.Send(item);
         }
 
         async Task Complete()
         {
-            block.Complete();
-            await block.Completion;
+            pipe.Complete();
+            await pipe.Completion;
         }
 
         void Setup(int batchSize, TimeSpan batchPeriod, Func<string[], Task> action) => 
-            block = Builder.Batch(batchSize, action).BatchTriggerPeriod(batchPeriod).ToPipe();
+            pipe = Builder.Batch(batchSize, action).BatchTriggerPeriod(batchPeriod).ToPipe();
 
         void Setup(int batchSize, Action<string[]> action) => 
-            block = Builder.Batch(batchSize, action).ToPipe();
+            pipe = Builder.Batch(batchSize, action).ToPipe();
 
         void Setup(Func<string, Task> action) => 
-            block = Builder.Batch(1, items => action(items[0])).ToPipe();
+            pipe = Builder.Batch(1, items => action(items[0])).ToPipe();
 
         void Setup(Func<string[], Task> action, int batchSize, int? boundedCapacity = null) => 
-            block = Builder.Batch(batchSize, action).BoundedCapacity(boundedCapacity).ToPipe();
+            pipe = Builder.Batch(batchSize, action).BoundedCapacity(boundedCapacity).ToPipe();
 
         PipeBuilder<string> Builder { get; } = new();
     }
