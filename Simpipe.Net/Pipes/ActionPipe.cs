@@ -55,11 +55,10 @@ public abstract class ActionPipe<T>
 {
     public static Pipe<T> Create(ActionPipeOptions<T> options)
     {
-        var boundedCapacity = options.BoundedCapacity() ?? options.DegreeOfParallelism() * 2;
-
         var pipe = new Pipe<T>(options);
 
-        pipe.Block = new ActionBlock<T>(boundedCapacity,
+        pipe.Block = new ActionBlock<T>(
+            options.BoundedCapacity() ?? options.DegreeOfParallelism() * 2,
             options.DegreeOfParallelism(),
             pipe.blockAction.Execute,
             pipe.RouteItem,
