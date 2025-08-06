@@ -1,6 +1,6 @@
 ﻿namespace Simpipe.Pipes;
 
-public sealed class ActionPipeOptions<T>(PipeAction<T> action) : PipeOptions<T>
+public sealed class ActionPipeOptions<T>(PipeAction<T> action) : PipeOptions<T>(action)
 {
     int? boundedCapacity;
     CancellationToken cancellationToken;
@@ -57,7 +57,7 @@ public abstract class ActionPipe<T>
     {
         var boundedCapacity = options.BoundedCapacity() ?? options.DegreeOfParallelism() * 2;
 
-        var pipe = new Pipe<T>(options, options.Action());
+        var pipe = new Pipe<T>(options);
 
         pipe.Block = new ActionBlock<T>(boundedCapacity,
             options.DegreeOfParallelism(),

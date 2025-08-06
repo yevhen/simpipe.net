@@ -1,6 +1,6 @@
 ﻿namespace Simpipe.Pipes;
 
-public sealed class BatchPipeOptions<T>(int batchSize, PipeAction<T> action) : PipeOptions<T>
+public sealed class BatchPipeOptions<T>(int batchSize, PipeAction<T> action) : PipeOptions<T>(action)
 {
     TimeSpan batchTriggerPeriod;
     int? boundedCapacity;
@@ -59,7 +59,7 @@ public abstract class BatchPipe<T>
 {
     public static Pipe<T> Create(BatchPipeOptions<T> options)
     {
-        var pipe = new Pipe<T>(options, options.Action());
+        var pipe = new Pipe<T>(options);
 
         pipe.Block = new BatchActionBlock<T>(
             options.BoundedCapacity() ?? options.BatchSize(),

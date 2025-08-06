@@ -41,12 +41,11 @@
 
         internal readonly PipeAction<T> blockAction;
 
-        public Pipe(PipeOptions<T> options, PipeAction<T> action)
+        public Pipe(PipeOptions<T> options)
         {
-            this.action = action;
-
             Id = options.Id();
             filter = options.Filter();
+            action = options.Action();
 
             var route = options.Route();
             if (route != null)
