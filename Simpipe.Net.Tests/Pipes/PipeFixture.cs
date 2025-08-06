@@ -7,8 +7,6 @@ namespace Simpipe.Tests.Pipes
     [TestFixture]
     public class PipeFixture
     {
-        readonly PipeBuilder<TestItem> builder = new();
-
         Pipe<TestItem> pipe = null!;
         Pipe<TestItem>? next;
 
@@ -324,22 +322,21 @@ namespace Simpipe.Tests.Pipes
         [Test]
         public async Task Integration_test()
         {
-            var b = new PipeBuilder<int>();
-
             var received1 = new List<int>();
             var received2 = new List<int>();
             
-            Pipe<int> p1 = b.Action(x =>
+            Pipe<int> p1 = Pipe<int>.Action(x =>
             {
                 Thread.Sleep(1);
                 received1.Add(x);
             });
-            
-            Pipe<int> p2 = b.Batch(1, x =>
+
+            Action<int[]> action = x =>
             {
                 Thread.Sleep(1);
                 received2.Add(x[0]);
-            });
+            };
+            Pipe<int> p2 = Pipe<int>.Batch(1, action);
             
             p1.LinkTo(p2);
             
@@ -388,13 +385,13 @@ namespace Simpipe.Tests.Pipes
             return Task.CompletedTask;
         });
 
-        Pipe<TestItem> CreatePipe(Func<TestItem, Task> action) => builder.Action(action);
+        Pipe<TestItem> CreatePipe(Func<TestItem, Task> action) => Pipe<TestItem>.Action(action);
 
         static TestItem CreateItem(string? data = null) => new() { Data = data };
 
         void Setup(Func<TestItem, Task> action)
         {
-            var options = builder.Action(action)
+            var options = Pipe<TestItem>.Action(action)
                 .CancellationToken(cancellation.Token);
             
             pipe = CreatePipe(options); 
@@ -402,7 +399,7 @@ namespace Simpipe.Tests.Pipes
 
         void Setup(Action<TestItem> action)
         {
-            var options = builder.Action(action)
+            var options = Pipe<TestItem>.Action(action)
                 .CancellationToken(cancellation.Token);
             
             pipe = CreatePipe(options); 
@@ -410,7 +407,7 @@ namespace Simpipe.Tests.Pipes
 
         void Setup(Action<TestItem> action, Func<TestItem, bool> filter)
         {
-            var options = builder.Action(action)
+            var options = Pipe<TestItem>.Action(action)
                 .Filter(filter)
                 .CancellationToken(cancellation.Token);
 
@@ -419,7 +416,7 @@ namespace Simpipe.Tests.Pipes
 
         void Setup(Func<TestItem, IPipe<TestItem>> route, Action<TestItem> action)
         {
-            var options = builder.Action(action).Route(route);
+            var options = Pipe<TestItem>.Action(action).Route(route);
             pipe = CreatePipe(options);
         }
 
@@ -434,7 +431,7 @@ namespace Simpipe.Tests.Pipes
 
         void SetupNextAsync(Func<TestItem, Task>? action = null, Func<TestItem, bool>? filter = null, Func<TestItem, IPipe<TestItem>>? route = null, IPipe<TestItem>? afterNext = null)
         {
-            var options = builder.Action(action ?? (_ => Task.CompletedTask));
+            var options = Pipe<TestItem>.Action(action ?? (_ => Task.CompletedTask));
             if (filter != null) 
                 options = options.Filter(filter);
 

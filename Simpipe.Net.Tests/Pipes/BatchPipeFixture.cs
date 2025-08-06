@@ -145,17 +145,18 @@ namespace Simpipe.Tests.Pipes
         }
 
         void Setup(int batchSize, TimeSpan batchPeriod, Func<string[], Task> action) => 
-            pipe = Builder.Batch(batchSize, action).BatchTriggerPeriod(batchPeriod).ToPipe();
+            pipe = Pipe<string>.Batch(batchSize, action).BatchTriggerPeriod(batchPeriod).ToPipe();
 
         void Setup(int batchSize, Action<string[]> action) => 
-            pipe = Builder.Batch(batchSize, action).ToPipe();
+            pipe = Pipe<string>.Batch(batchSize, action).ToPipe();
 
-        void Setup(Func<string, Task> action) => 
-            pipe = Builder.Batch(1, items => action(items[0])).ToPipe();
+        void Setup(Func<string, Task> action)
+        {
+            Func<string[], Task> action1 = items => action(items[0]);
+            pipe = Pipe<string>.Batch(1, action1).ToPipe();
+        }
 
         void Setup(Func<string[], Task> action, int batchSize, int? boundedCapacity = null) => 
-            pipe = Builder.Batch(batchSize, action).BoundedCapacity(boundedCapacity).ToPipe();
-
-        PipeBuilder<string> Builder { get; } = new();
+            pipe = Pipe<string>.Batch(batchSize, action).BoundedCapacity(boundedCapacity).ToPipe();
     }
 }

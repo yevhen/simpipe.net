@@ -70,8 +70,6 @@ namespace Simpipe.Tests.Pipes
         }
 
         void Setup(Func<int, Task> action) => 
-            pipe = Builder.Action(action).ToPipe();
-
-        static PipeBuilder<int> Builder => new();
+            pipe = Pipe<int>.Action(action).ToPipe();
     }
 }
