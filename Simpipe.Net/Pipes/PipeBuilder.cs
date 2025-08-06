@@ -7,6 +7,5 @@
         
         public BatchPipeOptions<T> Batch(int batchSize, Action<T[]> action) => new(batchSize, PipeAction<T>.For(action));
         public BatchPipeOptions<T> Batch(int batchSize, Func<T[], Task> action) => new(batchSize, PipeAction<T>.For(action));
-
     }
 }
