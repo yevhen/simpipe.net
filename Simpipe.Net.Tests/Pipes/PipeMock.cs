@@ -35,21 +35,10 @@ public class BlockMock<T>(Func<PipeItem<T>, Task> execute, Func<T, Task> done) :
 
     public int InputCount => 0;
 
-    public Task Send(T item)
+    public async Task Send(T item)
     {
-        var pipeItem = new PipeItem<T>(item);
-        
-        // Start execution in background but return immediately
-        // This simulates TPL Dataflow behavior where Send() returns quickly
-        // but execution continues asynchronously
-        var task = Task.Run(async () =>
-        {
-            await execute(pipeItem);
-            await done(item);
-        });
-        
-        // Return a task that can be awaited but doesn't block Send() caller
-        return task;
+        await execute(new PipeItem<T>(item));
+        await done(item);
     }
 
     public Task Complete() => completionSource.Task;

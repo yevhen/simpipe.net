@@ -312,6 +312,11 @@ public class PipeFixture
         Setup(_ => blocker.Task);
 
         var t = Send(CreateItem());
+        
+        // Allow background processing time to start and increment workingCount
+        // This fixes race condition between channel-based processing and count checking
+        await Task.Delay(10);
+        
         AssertWorkingCount(1);
 
         blocker.SetResult();
