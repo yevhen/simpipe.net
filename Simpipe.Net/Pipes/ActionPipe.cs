@@ -2,7 +2,7 @@
 
 namespace Simpipe.Pipes;
 
-public sealed class ActionPipeBuilder<T>(PipeAction<T> action)
+public sealed class ActionPipeBuilder<T>(BlockAction<T> action)
 {
     string id = "pipe-id";
     Func<T, bool>? filter;
@@ -54,7 +54,7 @@ public sealed class ActionPipeBuilder<T>(PipeAction<T> action)
         new ActionBlock<T>(
             boundedCapacity ?? degreeOfParallelism * 2,
             degreeOfParallelism,
-            item => execute(new PipeItem<T>(item)),
+            item => execute(new BlockItem<T>(item)),
             done,
             cancellationToken));
 

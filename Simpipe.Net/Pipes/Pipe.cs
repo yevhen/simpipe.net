@@ -4,24 +4,24 @@ namespace Simpipe.Pipes;
 
 public class Pipe<T>
 {
-    public static ActionPipeBuilder<T> Action(Action<T> action) => new(PipeAction<T>.For(action));
-    public static ActionPipeBuilder<T> Action(Func<T, Task> action) => new(PipeAction<T>.For(action));
+    public static ActionPipeBuilder<T> Action(Action<T> action) => new(BlockAction<T>.For(action));
+    public static ActionPipeBuilder<T> Action(Func<T, Task> action) => new(BlockAction<T>.For(action));
 
-    public static BatchPipeBuilder<T> Batch(int batchSize, Action<T[]> action) => new(batchSize, PipeAction<T>.For(action));
-    public static BatchPipeBuilder<T> Batch(int batchSize, Func<T[], Task> action) => new(batchSize, PipeAction<T>.For(action));
+    public static BatchPipeBuilder<T> Batch(int batchSize, Action<T[]> action) => new(batchSize, BlockAction<T>.For(action));
+    public static BatchPipeBuilder<T> Batch(int batchSize, Func<T[], Task> action) => new(batchSize, BlockAction<T>.For(action));
 
     public string Id { get; }
     public Pipe<T>? Next { get; private set; }
 
     readonly List<Func<T, Pipe<T>?>> routes = [];
     readonly Func<T, bool>? filter;
-    readonly PipeAction<T> action;
+    readonly BlockAction<T> action;
     readonly TaskCompletionSource completion = new();
 
     volatile int workingCount;
     volatile int outputCount;
 
-    public Pipe(PipeOptions<T> options, Func<Func<PipeItem<T>, Task>, Func<T, Task>, IBlock<T>> blockFactory)
+    public Pipe(PipeOptions<T> options, Func<Func<BlockItem<T>, Task>, Func<T, Task>, IBlock<T>> blockFactory)
     {
         Id = options.Id;
         filter = options.Filter;
@@ -31,13 +31,13 @@ public class Pipe<T>
         if (route != null)
             routes.Add(route);
 
-        var blockAction = PipeAction<T>.For(ExecuteAction);
+        var blockAction = BlockAction<T>.For(ExecuteAction);
         Block = blockFactory(blockAction.Execute, RouteItem);
     }
 
     public IBlock<T> Block { get; }
 
-    async Task ExecuteAction(PipeItem<T> item)
+    async Task ExecuteAction(BlockItem<T> item)
     {
         Interlocked.Add(ref workingCount, item.Size);
 

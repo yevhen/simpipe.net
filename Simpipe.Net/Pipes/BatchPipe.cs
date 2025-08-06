@@ -2,7 +2,7 @@
 
 namespace Simpipe.Pipes;
 
-public sealed class BatchPipeBuilder<T>(int batchSize, PipeAction<T> action)
+public sealed class BatchPipeBuilder<T>(int batchSize, BlockAction<T> action)
 {
     string id = "pipe-id";
     Func<T, bool>? filter;
@@ -63,7 +63,7 @@ public sealed class BatchPipeBuilder<T>(int batchSize, PipeAction<T> action)
             batchSize,
             batchTriggerPeriod != TimeSpan.Zero ? batchTriggerPeriod : Timeout.InfiniteTimeSpan,
             degreeOfParallelism,
-            items => execute(new PipeItem<T>(items)),
+            items => execute(new BlockItem<T>(items)),
             done,
             cancellationToken));
 

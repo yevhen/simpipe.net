@@ -7,22 +7,22 @@ public class CounterBlockFixture
     interface IPipeBlock<T>
     {
         Task Send(T item);
-        void SetAction(Func<PipeItem<T>, Task> action);
+        void SetAction(Func<BlockItem<T>, Task> action);
         void SetDone(Func<T, Task> done);
     }
 
     class PipeBlockMock<T>(Func<T, Task>? onSend = null) : IPipeBlock<T>
     {
-        Func<PipeItem<T>, Task> action = _ => Task.CompletedTask;
+        Func<BlockItem<T>, Task> action = _ => Task.CompletedTask;
         Func<T, Task> done = _ => Task.CompletedTask;
 
-        public void SetAction(Func<PipeItem<T>, Task> action) => this.action = action;
+        public void SetAction(Func<BlockItem<T>, Task> action) => this.action = action;
         public void SetDone(Func<T, Task> done) => this.done = done;
 
         public async Task Send(T item)
         {
             await (onSend != null ? onSend(item) : Task.CompletedTask);
-            await action(new PipeItem<T>(item));
+            await action(new BlockItem<T>(item));
             await done(item);
         }
     }
@@ -44,7 +44,7 @@ public class CounterBlockFixture
             Interlocked.Decrement(ref inputCount);
         }
 
-        public void SetAction(Func<PipeItem<T>, Task> action) => inner.SetAction(async x =>
+        public void SetAction(Func<BlockItem<T>, Task> action) => inner.SetAction(async x =>
         {
             Interlocked.Increment(ref workingCount);
             await action(x);
