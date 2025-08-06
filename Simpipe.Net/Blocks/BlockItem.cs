@@ -1,4 +1,4 @@
-﻿namespace Simpipe.Pipes;
+﻿namespace Simpipe.Blocks;
 
 public readonly record struct BlockItem<T>
 {

@@ -5,25 +5,29 @@ namespace Simpipe.Blocks;
 
 public class ActionBlock<T> : IBlock<T>
 {
-    readonly Func<T, Task> done;
-    readonly Channel<T> input;
-    readonly BlockAction<T> action;
-    readonly Task processor;
+    BlockAction<T> action;
+    BlockAction<T> done;
+
     readonly CancellationToken cancellationToken;
+    readonly Channel<BlockItem<T>> input;
+    readonly Task processor;
 
     public ActionBlock(
         int capacity,
         int parallelism,
-        Func<T, Task> action,
-        Func<T, Task>? done = null,
+        Func<BlockItem<T>, Task> action,
+        Func<BlockItem<T>, Task> done,
         CancellationToken cancellationToken = default)
     {
-        this.action = BlockAction<T>.For(action);
-        this.done = done ?? (_ => Task.CompletedTask);
+        SetAction(action);
+        SetDone(done);
+
         this.cancellationToken = cancellationToken;
 
-        input = Channel.CreateBounded<T>(capacity);
-        processor = Task.WhenAll(Enumerable.Range(0, parallelism).Select(_ => Task.Run(ProcessChannel, cancellationToken)));
+        input = Channel.CreateBounded<BlockItem<T>>(capacity);
+        processor = Task.WhenAll(Enumerable
+            .Range(0, parallelism)
+            .Select(_ => Task.Run(ProcessChannel, cancellationToken)));
     }
 
     public int InputCount => input.Reader.Count;
@@ -37,19 +41,22 @@ public class ActionBlock<T> : IBlock<T>
         }
     }
 
-    async Task ProcessItem(T item)
+    async Task ProcessItem(BlockItem<T> item)
     {
-        await action.Execute(new BlockItem<T>(item));
+        await action.Execute(item);
 
         if (!cancellationToken.IsCancellationRequested)
-            await done(item);
+            await done.Execute(item);
     }
 
-    public async Task Send(T item) => await input.Writer.WriteAsync(item, cancellationToken);
+    public async Task Send(BlockItem<T> item) => await input.Writer.WriteAsync(item, cancellationToken);
 
     public async Task Complete()
     {
         input.Writer.Complete();
         await processor;
     }
+
+    public void SetAction(Func<BlockItem<T>, Task> action) => this.action = BlockAction<T>.For(action);
+    public void SetDone(Func<BlockItem<T>, Task> done) => this.done = BlockAction<T>.For(done);
 }

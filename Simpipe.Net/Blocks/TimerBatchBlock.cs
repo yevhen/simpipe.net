@@ -1,6 +1,6 @@
 namespace Simpipe.Blocks;
 
-public class TimerBatchBlock<T> : IBlock<T>
+public class TimerBatchBlock<T>
 {
     readonly BatchBlock<T> batchBlock;
     readonly PeriodicTimer flushTimer;

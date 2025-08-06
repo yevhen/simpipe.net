@@ -35,9 +35,9 @@ public class BlockMock<T>(Func<BlockItem<T>, Task> execute, Func<T, Task> done) 
 
     public int InputCount => 0;
 
-    public async Task Send(T item)
+    public async Task Send(BlockItem<T> item)
     {
-        await execute(new BlockItem<T>(item));
+        await execute(item);
         await done(item);
     }
 

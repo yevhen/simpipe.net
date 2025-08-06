@@ -2,7 +2,7 @@ using System.Threading.Channels;
 
 namespace Simpipe.Blocks;
 
-public class BatchBlock<T> : IBlock<T>
+public class BatchBlock<T>
 {
     readonly Channel<T> input;
     readonly LinkedList<T> batch = [];
