@@ -1,7 +1,11 @@
 ﻿namespace Simpipe.Pipes;
 
-public sealed class ActionPipeOptions<T>(PipeAction<T> action) : PipeOptions<T>(action)
+public sealed class ActionPipeOptions<T>(PipeAction<T> action)
 {
+    string id = "pipe-id";
+    Func<T, bool>? filter;
+    Func<T, IPipe<T>>? route;
+
     int? boundedCapacity;
     CancellationToken cancellationToken;
     int degreeOfParallelism = 1;
@@ -42,7 +46,9 @@ public sealed class ActionPipeOptions<T>(PipeAction<T> action) : PipeOptions<T>(
         return this;
     }
 
-    public Pipe<T> ToPipe() => new(this, (execute, router) =>
+    PipeOptions<T> Options() => new(id, action, filter, route);
+
+    public Pipe<T> ToPipe() => new(Options(), (execute, router) =>
         new ActionBlock<T>(
             boundedCapacity ?? degreeOfParallelism * 2,
             degreeOfParallelism,

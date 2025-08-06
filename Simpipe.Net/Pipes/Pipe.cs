@@ -41,11 +41,11 @@
 
         public Pipe(PipeOptions<T> options, Func<Func<PipeItem<T>, Task>, Func<T, Task>, IBlock<T>> blockFactory)
         {
-            Id = options.Id();
-            filter = options.Filter();
-            action = options.Action();
+            Id = options.Id;
+            filter = options.Filter;
+            action = options.Action;
 
-            var route = options.Route();
+            var route = options.Route;
             if (route != null)
                 routes.Add(route);
 

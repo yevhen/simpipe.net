@@ -1,13 +1,8 @@
 ﻿namespace Simpipe.Pipes;
 
-public class PipeOptions<T>(PipeAction<T> action)
-{
-    protected string id = "pipe-id";
-    protected Func<T, bool>? filter;
-    protected Func<T, IPipe<T>>? route;
-
-    public string Id() => id;
-    public Func<T, bool>? Filter() => filter;
-    public Func<T, IPipe<T>?>? Route() => route;
-    public PipeAction<T> Action() => action;
-}
+public record PipeOptions<T>(
+    string Id,
+    PipeAction<T> Action,
+    Func<T, bool>? Filter,
+    Func<T, IPipe<T>>? Route
+);

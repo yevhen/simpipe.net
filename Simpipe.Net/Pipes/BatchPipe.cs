@@ -1,7 +1,11 @@
 ﻿namespace Simpipe.Pipes;
 
-public sealed class BatchPipeOptions<T>(int batchSize, PipeAction<T> action) : PipeOptions<T>(action)
+public sealed class BatchPipeOptions<T>(int batchSize, PipeAction<T> action)
 {
+    string id = "pipe-id";
+    Func<T, bool>? filter;
+    Func<T, IPipe<T>>? route;
+
     TimeSpan batchTriggerPeriod;
     int? boundedCapacity;
     CancellationToken cancellationToken;
@@ -16,6 +20,12 @@ public sealed class BatchPipeOptions<T>(int batchSize, PipeAction<T> action) : P
     public BatchPipeOptions<T> Filter(Func<T, bool> value)
     {
         filter = value;
+        return this;
+    }
+
+    public BatchPipeOptions<T> Route(Func<T, IPipe<T>> value)
+    {
+        route = value;
         return this;
     }
 
@@ -43,7 +53,9 @@ public sealed class BatchPipeOptions<T>(int batchSize, PipeAction<T> action) : P
         return this;
     }
 
-    public Pipe<T> ToPipe() => new(this, (execute, route) =>
+    PipeOptions<T> Options() => new(id, action, filter, route);
+
+    public Pipe<T> ToPipe() => new(Options(), (execute, route) =>
         new BatchActionBlock<T>(
             boundedCapacity ?? batchSize,
             batchSize,
