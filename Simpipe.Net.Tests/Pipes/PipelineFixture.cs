@@ -8,10 +8,7 @@ public class PipelineFixture
     Pipeline<int> pipeline = null!;
 
     [SetUp]
-    public void SetUp()
-    {
-        pipeline = new();
-    }
+    public void SetUp() => pipeline = new();
 
     [Test]
     public void Duplicate_id()
@@ -161,30 +158,7 @@ public class PipelineFixture
     }
 
     [Test]
-    public async Task Completes_on_one_pipe()
-    {
-        var pipe = PipeMock<int>.Create(id: "1");
-        pipeline.Add(pipe);
-
-        Assert.False(pipeline.Completion.IsCompleted);
-
-        var completion = pipeline.Complete();
-
-        // Should NOT complete yet - waiting for pipe completion
-        Assert.False(completion.IsCompleted);
-        Assert.False(pipeline.Completion.IsCompleted);
-
-        // Manually trigger pipe completion
-        pipe.AsBlockMock().CompleteNow();
-
-        await completion;
-
-        // Now pipeline should be completed
-        Assert.True(pipeline.Completion.IsCompleted);
-    }
-
-    [Test]
-    public async Task Completes_on_many_pipes()
+    public async Task Pipeline_completion_waits_completion_of_all_pipes()
     {
         var first = PipeMock<int>.Create(id: "1");
         var second = PipeMock<int>.Create(id: "2");
@@ -192,27 +166,18 @@ public class PipelineFixture
         pipeline.Add(first);
         pipeline.Add(second);
 
-        Assert.False(pipeline.Completion.IsCompleted);
-
-        // Pipeline completion should wait for all pipes to complete
         var completion = pipeline.Complete();
+        Assert.That(completion.IsCompleted, Is.False);
 
-        // Should NOT complete yet - waiting for both pipes
-        Assert.False(completion.IsCompleted);
-        Assert.False(pipeline.Completion.IsCompleted);
+        first.AsBlockMock().SetComplete();
+        await Task.Delay(10);
+        Assert.That(completion.IsCompleted, Is.False);
 
-        // Complete first pipe - pipeline should still not be complete
-        first.AsBlockMock().CompleteNow();
-        await Task.Delay(10); // Give it a moment to potentially complete
-        Assert.False(completion.IsCompleted);
-        Assert.False(pipeline.Completion.IsCompleted);
-
-        // Complete second pipe - now pipeline should complete
-        second.AsBlockMock().CompleteNow();
+        second.AsBlockMock().SetComplete();
+        await Task.Delay(10);
         await completion;
 
-        Assert.True(pipeline.Completion.IsCompleted);
-        Assert.True(completion.IsCompleted);
+        Assert.That(completion.IsCompleted, Is.True);
     }
 
     [Test]

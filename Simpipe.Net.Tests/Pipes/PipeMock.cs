@@ -29,37 +29,31 @@ public static class PipeMock<T>
         new(options, (execute, done) => new BlockMock<T>(execute, done));
 }
 
-public class BlockMock<T> : IBlock<T>
+public class BlockMock<T>(Func<PipeItem<T>, Task> execute, Func<T, Task> done) : IBlock<T>
 {
-    readonly Func<PipeItem<T>, Task> execute;
-    readonly Func<T, Task> done;
     readonly TaskCompletionSource completionSource = new();
-
-    public BlockMock(Func<PipeItem<T>, Task> execute, Func<T, Task> done)
-    {
-        this.execute = execute;
-        this.done = done;
-    }
 
     public int InputCount => 0;
 
     public Task Send(T item)
     {
         var pipeItem = new PipeItem<T>(item);
-        return Task.Run(async () =>
+        
+        // Start execution in background but return immediately
+        // This simulates TPL Dataflow behavior where Send() returns quickly
+        // but execution continues asynchronously
+        var task = Task.Run(async () =>
         {
             await execute(pipeItem);
             await done(item);
         });
+        
+        // Return a task that can be awaited but doesn't block Send() caller
+        return task;
     }
 
-    // Controllable completion
     public Task Complete() => completionSource.Task;
-    
-    // Test control methods
-    public void CompleteNow() => completionSource.TrySetResult();
-    public void FailCompletion(Exception ex) => completionSource.TrySetException(ex);
-    public bool IsCompleted => completionSource.Task.IsCompleted;
+    public void SetComplete() => completionSource.TrySetResult();
 }
 
 internal static partial class TestingExtensions
