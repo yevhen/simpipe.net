@@ -11,6 +11,8 @@ public class PipeMock : PipeMock<int>
 
 public class BlockMock<T>(Action<T> action) : IBlock<T>
 {
+    public int InputCount => 0;
+
     public Task Send(T item)
     {
         action(item);

@@ -79,8 +79,6 @@ public class BatchPipe<T> : Pipe<T>
         return new BatchPipe<T>(options);
     }
 
-    public override int InputCount => block.InputCount;
-
     async Task<T[]> Execute(T[] item)
     {
         await ExecuteAction(item);
@@ -89,25 +87,6 @@ public class BatchPipe<T> : Pipe<T>
 
     async Task ExecuteAction(T[] item) => await blockAction.Execute(item);
 
-    protected override Task BlockSend(T item) => block.Send(item);
-
-    protected override void BlockComplete()
-    {
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                await block.Complete();
-                completion.TrySetResult();
-            }
-            catch (Exception e)
-            {
-                completion.TrySetException(e);
-            }
-        });
-    }
-
-    protected override Task BlockCompletion() => completion.Task;
 
     public override IBlock<T> Block { get; }
 }

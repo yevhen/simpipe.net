@@ -26,7 +26,7 @@
         public static void LinkTo<T>(this IPipe<T> pipe, IPipe<T> next) => pipe.Next = next;
     }
 
-    public abstract class Pipe<T> : IPipe<T>
+    public class Pipe<T> : IPipe<T>
     {
         public string Id { get; }
         public virtual IPipe<T>? Next { get; set; }
@@ -34,8 +34,9 @@
         readonly List<Func<T, IPipe<T>?>> routes = new();
         readonly Func<T, bool>? filter;
         readonly PipeAction<T> action;
+        readonly TaskCompletionSource completion = new();
 
-        volatile int working;
+        volatile int workingCount;
         volatile int outputCount;
 
         protected readonly PipeAction<T> blockAction;
@@ -56,11 +57,11 @@
 
         async Task ExecuteAction(PipeItem<T> item)
         {
-            Interlocked.Add(ref working, item.Size);
+            Interlocked.Add(ref workingCount, item.Size);
         
             await action.Execute(item);
 
-            Interlocked.Add(ref working, -item.Size);
+            Interlocked.Add(ref workingCount, -item.Size);
         }
 
         public IBlock<T> Target(T item) => FilterMatches(item)
@@ -109,9 +110,9 @@
                 await Next.Send(item);
         }
 
-        public abstract int InputCount { get; }
+        public int InputCount => Block.InputCount;
         public int OutputCount => outputCount;
-        public virtual int WorkingCount => working;
+        public int WorkingCount => workingCount;
 
         public void Complete() => BlockComplete();
         public Task Completion => AwaitCompletion();
@@ -127,10 +128,26 @@
 
         public virtual void LinkTo(Func<T, IPipe<T>?> route) => routes.Add(route);
 
-        protected abstract Task BlockSend(T item);
-        protected abstract void BlockComplete();
-        protected abstract Task BlockCompletion();
+        Task BlockSend(T item) => Block.Send(item);
 
-        public abstract IBlock<T> Block { get; }
+        void BlockComplete()
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await Block.Complete();
+                    completion.TrySetResult();
+                }
+                catch (Exception e)
+                {
+                    completion.TrySetException(e);
+                }
+            });
+        }
+
+        Task BlockCompletion() => completion.Task;
+
+        public virtual IBlock<T> Block { get; }
     }
 }
