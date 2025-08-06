@@ -7,7 +7,7 @@ public static class PipeMock<T>
 {
     public static Pipe<T> Create(Action<T> action) =>
         new(new PipeOptions<T>("id", PipeAction<T>.For(action), null, null),
-            (execute, done) => new BlockMock2<T>(execute, done));
+            (execute, done) => new BlockMock<T>(execute, done));
 
     public static Pipe<T> Create(Action<T> action, Func<T, bool> filter) =>
         Create(new PipeOptions<T>("id", PipeAction<T>.For(action), filter, null));
@@ -26,10 +26,10 @@ public static class PipeMock<T>
         Create(new PipeOptions<T>("id", PipeAction<T>.For(action), filter, route));
 
     static Pipe<T> Create(PipeOptions<T> options) =>
-        new(options, (execute, done) => new BlockMock2<T>(execute, done));
+        new(options, (execute, done) => new BlockMock<T>(execute, done));
 }
 
-public class BlockMock2<T>(Func<PipeItem<T>, Task> execute, Func<T, Task> done) : IBlock<T>
+public class BlockMock<T>(Func<PipeItem<T>, Task> execute, Func<T, Task> done) : IBlock<T>
 {
     public int InputCount => 0;
 
@@ -40,4 +40,9 @@ public class BlockMock2<T>(Func<PipeItem<T>, Task> execute, Func<T, Task> done) 
     }
 
     public Task Complete() => Task.CompletedTask;
+}
+
+internal static partial class TestingExtensions
+{
+    public static BlockMock<T> AsBlockMock<T>(this Pipe<T> pipe) => (BlockMock<T>) pipe.Block;
 }

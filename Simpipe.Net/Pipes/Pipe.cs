@@ -35,7 +35,7 @@ public class Pipe<T>
         Block = blockFactory(blockAction.Execute, RouteItem);
     }
 
-    IBlock<T> Block { get; }
+    public IBlock<T> Block { get; }
 
     async Task ExecuteAction(PipeItem<T> item)
     {

@@ -226,7 +226,7 @@ public class PipelineFixture
     }
 }
 
-internal static class TestingExtensions
+internal static partial class TestingExtensions
 {
     public static void BreakNextChainToPreventForwarding<T>(this Pipe<T> pipe) => pipe.LinkNext(null);
 }
