@@ -21,7 +21,7 @@ public class Pipe<T>
     volatile int workingCount;
     volatile int outputCount;
 
-    public Pipe(PipeOptions<T> options, Func<Func<BlockItem<T>, Task>, Func<T, Task>, IBlock<T>> blockFactory)
+    public Pipe(PipeOptions<T> options, IBlock<T> block)
     {
         Id = options.Id;
         filter = options.Filter;
@@ -31,8 +31,10 @@ public class Pipe<T>
         if (route != null)
             routes.Add(route);
 
-        var blockAction = BlockAction<T>.For(ExecuteAction);
-        Block = blockFactory(blockAction.Execute, RouteItem);
+        Block = block;
+
+        block.SetAction(ExecuteAction);
+        block.SetDone(RouteItem);
     }
 
     public IBlock<T> Block { get; }
@@ -49,6 +51,8 @@ public class Pipe<T>
     IBlock<T> Target(T item) => FilterMatches(item)
         ? Block
         : RouteTarget(item);
+
+    async Task RouteItem(BlockItem<T> item) => await item.Apply(RouteItem);
 
     async Task RouteItem(T item)
     {

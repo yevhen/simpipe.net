@@ -6,8 +6,7 @@ namespace Simpipe.Tests.Pipes;
 public static class PipeMock<T>
 {
     public static Pipe<T> Create(Action<T> action) =>
-        new(new PipeOptions<T>("id", BlockAction<T>.For(action), null, null),
-            (execute, done) => new BlockMock<T>(execute, done));
+        Create(new PipeOptions<T>("id", BlockAction<T>.For(action), null, null));
 
     public static Pipe<T> Create(Action<T> action, Func<T, bool> filter) =>
         Create(new PipeOptions<T>("id", BlockAction<T>.For(action), filter, null));
@@ -26,11 +25,14 @@ public static class PipeMock<T>
         Create(new PipeOptions<T>("id", BlockAction<T>.For(action), filter, route));
 
     static Pipe<T> Create(PipeOptions<T> options) =>
-        new(options, (execute, done) => new BlockMock<T>(execute, done));
+        new(options, new BlockMock<T>());
 }
 
-public class BlockMock<T>(Func<BlockItem<T>, Task> execute, Func<T, Task> done) : IBlock<T>
+public class BlockMock<T> : IBlock<T>
 {
+    Func<BlockItem<T>, Task> execute = _ => Task.CompletedTask;
+    Func<BlockItem<T>, Task> done = _ => Task.CompletedTask;
+
     readonly TaskCompletionSource completionSource = new();
 
     public int InputCount => 0;
@@ -43,6 +45,9 @@ public class BlockMock<T>(Func<BlockItem<T>, Task> execute, Func<T, Task> done) 
 
     public Task Complete() => completionSource.Task;
     public void SetComplete() => completionSource.TrySetResult();
+
+    public void SetAction(Func<BlockItem<T>, Task> action) => execute = action;
+    public void SetDone(Func<BlockItem<T>, Task> done) => this.done = done;
 }
 
 internal static partial class TestingExtensions

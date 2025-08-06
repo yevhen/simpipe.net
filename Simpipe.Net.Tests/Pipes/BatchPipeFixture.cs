@@ -151,11 +151,8 @@ public class BatchPipeFixture
     void Setup(int batchSize, Action<string[]> action) =>
         pipe = Pipe<string>.Batch(batchSize, action).ToPipe();
 
-    void Setup(Func<string, Task> action)
-    {
-        Func<string[], Task> action1 = items => action(items[0]);
-        pipe = Pipe<string>.Batch(1, action1).ToPipe();
-    }
+    void Setup(Func<string, Task> action) =>
+        pipe = Pipe<string>.Batch(1, items => action(items[0])).ToPipe();
 
     void Setup(Func<string[], Task> action, int batchSize, int? boundedCapacity = null) =>
         pipe = Pipe<string>.Batch(batchSize, action).BoundedCapacity(boundedCapacity).ToPipe();
