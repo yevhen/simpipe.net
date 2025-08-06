@@ -1,32 +1,11 @@
 ﻿namespace Simpipe.Pipes
 {
-    public interface IPipe<T>
-    {
-        string Id { get; }
-        IPipe<T>? Next { get; set; }
-
-        IBlock<T> Block { get; }
-        IBlock<T> Target(T item);
-
-        Task Send(T item);
-        Task SendNext(T item);
-
-        void Complete();
-        Task Completion { get; }
-
-        int InputCount { get; }
-        int OutputCount { get; }
-        int WorkingCount { get; }
-
-        void LinkTo(Func<T, IPipe<T>?> route);
-    }
-
     public static class PipeExtensions
     {
-        public static void LinkTo<T>(this IPipe<T> pipe, IPipe<T> next) => pipe.Next = next;
+        public static void LinkNext<T>(this Pipe<T> pipe, Pipe<T> next) => pipe.Next = next;
     }
 
-    public class Pipe<T> : IPipe<T>
+    public class Pipe<T>
     {
         public static ActionPipeBuilder<T> Action(Action<T> action) => new(PipeAction<T>.For(action));
         public static ActionPipeBuilder<T> Action(Func<T, Task> action) => new(PipeAction<T>.For(action));
@@ -35,9 +14,9 @@
         public static BatchPipeBuilder<T> Batch(int batchSize, Func<T[], Task> action) => new(batchSize, PipeAction<T>.For(action));
 
         public string Id { get; }
-        public virtual IPipe<T>? Next { get; set; }
+        public virtual Pipe<T>? Next { get; set; }
 
-        readonly List<Func<T, IPipe<T>?>> routes = new();
+        readonly List<Func<T, Pipe<T>?>> routes = new();
         readonly Func<T, bool>? filter;
         readonly PipeAction<T> action;
         readonly TaskCompletionSource completion = new();
@@ -91,7 +70,7 @@
                 : target.Target(item);
         }
 
-        IPipe<T>? Route(T item) => routes
+        Pipe<T>? Route(T item) => routes
             .Select(route => route(item))
             .FirstOrDefault(pipe => pipe != null);
 
@@ -132,7 +111,7 @@
             catch (TaskCanceledException) {}
         }
 
-        public virtual void LinkTo(Func<T, IPipe<T>?> route) => routes.Add(route);
+        public virtual void LinkTo(Func<T, Pipe<T>?> route) => routes.Add(route);
 
         Task BlockSend(T item) => Block.Send(item);
 

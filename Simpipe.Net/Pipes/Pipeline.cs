@@ -2,22 +2,22 @@
 
 namespace Simpipe.Pipes
 {
-    public class Pipeline<T> : IEnumerable<IPipe<T>>
+    public class Pipeline<T> : IEnumerable<Pipe<T>>
     {
-        IPipe<T>? head;
-        IPipe<T>? last;
+        Pipe<T>? head;
+        Pipe<T>? last;
 
         readonly TaskCompletionSource completion = new();
 
-        readonly Dictionary<string, IPipe<T>> pipesById = new();
-        readonly List<IPipe<T>> pipes = new();
+        readonly Dictionary<string, Pipe<T>> pipesById = new();
+        readonly List<Pipe<T>> pipes = new();
 
-        readonly Func<T, IPipe<T>?>? defaultRoute;
+        readonly Func<T, Pipe<T>?>? defaultRoute;
 
-        public Pipeline(Func<T, IPipe<T>?>? defaultRoute = null) => 
+        public Pipeline(Func<T, Pipe<T>?>? defaultRoute = null) => 
             this.defaultRoute = defaultRoute;
 
-        public void Add(IPipe<T> pipe)
+        public void Add(Pipe<T> pipe)
         {
             if (pipesById.ContainsKey(pipe.Id))
                 throw new Exception($"The pipe with id {pipe.Id} already exists");
@@ -31,12 +31,12 @@ namespace Simpipe.Pipes
             last = pipe;
         }
 
-        void Link(IPipe<T> pipe)
+        void Link(Pipe<T> pipe)
         {
             if (defaultRoute != null)
                 pipe.LinkTo(defaultRoute);
             
-            last?.LinkTo(pipe);
+            last?.LinkNext(pipe);
         }
 
         public async Task Send(T item, string? id = null)
@@ -77,7 +77,7 @@ namespace Simpipe.Pipes
 
         public Task Completion => completion.Task;
 
-        public IEnumerator<IPipe<T>> GetEnumerator() => pipes.GetEnumerator();
+        public IEnumerator<Pipe<T>> GetEnumerator() => pipes.GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }

@@ -4,7 +4,7 @@ public sealed class BatchPipeBuilder<T>(int batchSize, PipeAction<T> action)
 {
     string id = "pipe-id";
     Func<T, bool>? filter;
-    Func<T, IPipe<T>>? route;
+    Func<T, Pipe<T>>? route;
 
     TimeSpan batchTriggerPeriod;
     int? boundedCapacity;
@@ -23,7 +23,7 @@ public sealed class BatchPipeBuilder<T>(int batchSize, PipeAction<T> action)
         return this;
     }
 
-    public BatchPipeBuilder<T> Route(Func<T, IPipe<T>> value)
+    public BatchPipeBuilder<T> Route(Func<T, Pipe<T>> value)
     {
         route = value;
         return this;

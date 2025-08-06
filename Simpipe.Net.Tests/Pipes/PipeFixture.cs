@@ -74,209 +74,209 @@ namespace Simpipe.Tests.Pipes
         [Test]
         public async Task SendNext_executes_next_pipe()
         {
-            TestItem? pipeReceived = null;
-            TestItem? nextPipeReceived = null;
-
-            Setup(x => pipeReceived = x);
-            SetupNext(x => nextPipeReceived = x);
+            var mainProcessed = new List<TestItem>();
+            var nextProcessed = new List<TestItem>();
+            var mainPipe = PipeMock<TestItem>.Create(mainProcessed.Add);
+            var nextPipe = PipeMock<TestItem>.Create(nextProcessed.Add);
+            mainPipe.LinkNext(nextPipe);
 
             var item = CreateItem();
-            await pipe.SendNext(item);
+            await mainPipe.SendNext(item);
 
-            await Complete();
-
-            Assert.IsNull(pipeReceived);
-            Assert.That(nextPipeReceived, Is.SameAs(item));
+            Assert.That(mainProcessed, Is.Empty);
+            Assert.That(nextProcessed.Single(), Is.SameAs(item));
         }
 
         [Test]
         public void SendNext_sends_to_null_if_no_next()
         {
-            Setup(_ => {});
+            var testPipe = PipeMock<TestItem>.Create(_ => {});
 
-            Assert.DoesNotThrowAsync(() => pipe.SendNext(CreateItem()));
+            Assert.DoesNotThrowAsync(() => testPipe.SendNext(CreateItem()));
         }
 
         [Test]
         public async Task Sends_to_pipe_returned_by_routing_predicate()
         {
-            TestItem? routedPipeReceived = null;
-            TestItem? nextPipeReceived = null;
-
-            var routed = CreatePipe(x => routedPipeReceived = x);
-            Setup(_ => routed, _ => {});
-            SetupNext(x => nextPipeReceived = x);
-
+            var routedProcessed = new List<TestItem>();
+            var nextProcessed = new List<TestItem>();
+            
+            var routedPipe = PipeMock<TestItem>.Create(routedProcessed.Add);
+            var nextPipe = PipeMock<TestItem>.Create(nextProcessed.Add);
+            var mainPipe = PipeMock<TestItem>.Create(_ => {}, route: _ => routedPipe);
+            
+            mainPipe.LinkNext(nextPipe);
+            
             var item = CreateItem();
-            await Complete(item);
-
-            routed.Complete();
-            await routed.Completion;
-
-            Assert.Null(nextPipeReceived);
-            Assert.That(routedPipeReceived, Is.SameAs(item));
+            await mainPipe.Send(item);
+            
+            Assert.That(nextProcessed, Is.Empty);
+            Assert.That(routedProcessed.Single(), Is.SameAs(item));
         }
 
         [Test]
         public async Task Sends_to_next_if_route_does_not_match()
         {
-            TestItem? nextPipeReceived = null;
-
-            Setup(_ => null!, _ => {});
-            SetupNext(x => nextPipeReceived = x);
+            var nextProcessed = new List<TestItem>();
+            var nextPipe = PipeMock<TestItem>.Create(nextProcessed.Add);
+            var mainPipe = PipeMock<TestItem>.Create(_ => {}, route: _ => null);
+            mainPipe.LinkNext(nextPipe);
 
             var item = CreateItem();
-            await Complete(item);
+            await mainPipe.Send(item);
 
-            Assert.That(nextPipeReceived, Is.SameAs(item));
+            Assert.That(nextProcessed.Single(), Is.SameAs(item));
         }
 
         [Test]
         public async Task Check_next_route_if_route_returns_null()
         {
-            Setup(_ => { });
+            var pipe = PipeMock<TestItem>.Create(_ => { });
 
-            TestItem? routedPipeReceived = null;
-            var routed = CreatePipe(x => routedPipeReceived = x);
+            var routedReceived = new List<TestItem>();
+            var routed = PipeMock<TestItem>.Create(routedReceived.Add);
             
             pipe.LinkTo(_ => null);
             pipe.LinkTo(_ => routed);
 
             var item = CreateItem();
-            await Complete(item);
-
-            routed.Complete();
-            await routed.Completion;
+            await pipe.Send(item);
             
-            Assert.That(routedPipeReceived, Is.SameAs(item));
+            Assert.That(routedReceived, Has.Count.EqualTo(1));
+            Assert.That(routedReceived.Single(), Is.SameAs(item));
         }
         
         [Test]
         public async Task Routes_match_in_order()
         {
-            Setup(_ => { });
+            var pipe = PipeMock<TestItem>.Create(action: _ => { });
+            var routed1Received = new List<TestItem>();
+            var routed2Received = new List<TestItem>();
+            var routed1 = PipeMock<TestItem>.Create(routed1Received.Add);
+            var routed2 = PipeMock<TestItem>.Create(routed2Received.Add);
 
-            TestItem? routed1PipeReceived = null;
-            TestItem? routed2PipeReceived = null;
-
-            var routed1 = CreatePipe(x => routed1PipeReceived = x);
-            var routed2 = CreatePipe(x => routed2PipeReceived = x);
-            
             pipe.LinkTo(_ => routed1);
             pipe.LinkTo(_ => routed2);
 
             var item = CreateItem();
-            await Complete(item);
+            await pipe.Send(item);
 
-            routed1.Complete();
-            await routed1.Completion;
-
-            routed2.Complete();
-            await routed2.Completion;
-
-            Assert.That(routed1PipeReceived, Is.SameAs(item));
-            Assert.Null(routed2PipeReceived);
+            Assert.That(routed1Received.Single(), Is.SameAs(item));
+            Assert.That(routed2Received, Is.Empty);
         }
 
         [Test] 
         public async Task Conditional_execution_when_filter_matches()
         {
-            var pipeExecuted = false;
-            var nextPipeExecuted = false;
-        
-            Setup(_ => pipeExecuted = true, a => a.Data == "1");
-            SetupNext(_ => nextPipeExecuted = true);
-        
+            var mainProcessed = new List<TestItem>();
+            var nextProcessed = new List<TestItem>();
+
+            var nextPipe = PipeMock<TestItem>.Create(nextProcessed.Add);
+            var mainPipe = PipeMock<TestItem>.Create(
+                action: x => mainProcessed.Add(x),
+                filter: x => x.Data == "1");
+            mainPipe.LinkNext(nextPipe);
+
             var item = CreateItem("1");
-            await Complete(item);
-        
-            Assert.True(pipeExecuted);
-            Assert.True(nextPipeExecuted);
+            await mainPipe.Send(item);
+
+            Assert.That(mainProcessed, Has.Count.EqualTo(1));
+            Assert.That(nextProcessed, Has.Count.EqualTo(1));
         }
 
         [Test] 
         public async Task Conditional_execution_when_filter_does_not_match()
         {
-            var pipeExecuted = false;
-            var nextPipeExecuted = false;
-        
-            Setup(_ => pipeExecuted = true, a => a.Data == "1");
-            SetupNext(_ => nextPipeExecuted = true);
-        
-            var item = CreateItem("2");
-            await Complete(item);
-        
-            Assert.False(pipeExecuted);
-            Assert.True(nextPipeExecuted);
+            var mainProcessed = new List<TestItem>();
+            var nextProcessed = new List<TestItem>();
+
+            var nextPipe = PipeMock<TestItem>.Create(nextProcessed.Add);
+            var mainPipe = PipeMock<TestItem>.Create(
+                action: x => mainProcessed.Add(x),
+                filter: x => x.Data == "1");        // Filter expects "1"
+            mainPipe.LinkNext(nextPipe);
+
+            var item = CreateItem("2");             // Send "2" - doesn't match filter
+            await mainPipe.Send(item);
+
+            Assert.That(mainProcessed, Is.Empty);  // Action skipped
+            Assert.That(nextProcessed, Has.Count.EqualTo(1));  // Item still forwarded
         }
 
         [Test] 
         public async Task Recursive_conditional_filtering_via_Send()
         {
-            var pipeExecuted = false;
-            var nextPipeExecuted = false;
-            var endPipeExecuted = false;
+            var mainProcessed = new List<TestItem>();
+            var nextProcessed = new List<TestItem>();
+            var endProcessed = new List<TestItem>();
 
-            var endPipe = CreatePipe(_ => endPipeExecuted = true);
+            var endPipe = PipeMock<TestItem>.Create(endProcessed.Add);
+            var nextPipe = PipeMock<TestItem>.Create(
+                action: x => nextProcessed.Add(x),
+                filter: x => x.Data == "1");
+            var mainPipe = PipeMock<TestItem>.Create(
+                action: x => mainProcessed.Add(x),
+                filter: x => x.Data == "1");
 
-            Setup(_ => pipeExecuted = true, a => a.Data == "1");
-            SetupNext(_ => nextPipeExecuted = true, a => a.Data == "1", afterNext: endPipe);
+            mainPipe.LinkNext(nextPipe);
+            nextPipe.LinkNext(endPipe);
         
             var item = CreateItem("2");
-            await Complete(item);
+            await mainPipe.Send(item);
 
-            endPipe.Complete();
-            await endPipe.Completion;
-        
-            Assert.False(pipeExecuted);
-            Assert.False(nextPipeExecuted);
-            Assert.True(endPipeExecuted);
+            Assert.That(mainProcessed, Is.Empty);  // Filtered out
+            Assert.That(nextProcessed, Is.Empty);  // Filtered out
+            Assert.That(endProcessed, Has.Count.EqualTo(1));   // Final destination
         }
 
         [Test] 
         public async Task Recursive_conditional_filtering_via_link()
         {
-            var pipeExecuted = false;
-            var nextPipeExecuted = false;
-            var endPipeExecuted = false;
+            var mainProcessed = new List<TestItem>();
+            var nextProcessed = new List<TestItem>();
+            var endProcessed = new List<TestItem>();
 
-            var endPipe = CreatePipe(_ => endPipeExecuted = true);
+            var endPipe = PipeMock<TestItem>.Create(action: x => endProcessed.Add(x));
+            var nextPipe = PipeMock<TestItem>.Create(
+                action: x => nextProcessed.Add(x),
+                filter: x => x.Data == "1");
+            var mainPipe = PipeMock<TestItem>.Create(action: x => mainProcessed.Add(x));
 
-            Setup(_ => pipeExecuted = true);
-            SetupNext(_ => nextPipeExecuted = true, a => a.Data == "1", afterNext: endPipe);
+            mainPipe.LinkNext(nextPipe);
+            nextPipe.LinkNext(endPipe);
         
             var item = CreateItem("2");
-            await Complete(item);
+            await mainPipe.Send(item);
 
-            endPipe.Complete();
-            await endPipe.Completion;
-        
-            Assert.True(pipeExecuted);
-            Assert.False(nextPipeExecuted);
-            Assert.True(endPipeExecuted);
+            Assert.That(mainProcessed, Has.Count.EqualTo(1));  // Main pipe executed (no filter)
+            Assert.That(nextProcessed, Is.Empty);              // Next pipe filtered out
+            Assert.That(endProcessed, Has.Count.EqualTo(1));   // End pipe received cascaded item
         }
 
         [Test] 
         public async Task Routes_are_only_used_for_items_that_passed_through_block()
         {
-            var pipeExecuted = false;
-            var nextPipeExecuted = false;
+            var mainProcessed = new List<TestItem>();
+            var nextProcessed = new List<TestItem>();
+            var routedProcessed = new List<TestItem>();
 
-            TestItem? routedPipeReceived = null;
-            var routed = CreatePipe(x => routedPipeReceived = x);
+            var routedPipe = PipeMock<TestItem>.Create(routedProcessed.Add);
+            var nextPipe = PipeMock<TestItem>.Create(
+                action: x => nextProcessed.Add(x),
+                filter: x => x.Data == "1",
+                route: _ => routedPipe);
+            var mainPipe = PipeMock<TestItem>.Create(
+                action: x => mainProcessed.Add(x),
+                filter: x => x.Data == "1");
 
-            Setup(_ => pipeExecuted = true, a => a.Data == "1");
-            SetupNext(_ => nextPipeExecuted = true, a => a.Data == "1", route: _ => routed);
+            mainPipe.LinkNext(nextPipe);
         
             var item = CreateItem("2");
-            await Complete(item);
+            await mainPipe.Send(item);
 
-            routed.Complete();
-            await routed.Completion;
-        
-            Assert.False(pipeExecuted);
-            Assert.False(nextPipeExecuted);
-            Assert.Null(routedPipeReceived, "Should not use route if didn't pass through the block");
+            Assert.That(mainProcessed, Is.Empty);
+            Assert.That(nextProcessed, Is.Empty);
+            Assert.That(routedProcessed, Is.Empty, "Should not use route if didn't pass through the block");
         }
 
         [Test]
@@ -338,7 +338,7 @@ namespace Simpipe.Tests.Pipes
             };
             Pipe<int> p2 = Pipe<int>.Batch(1, action);
             
-            p1.LinkTo(p2);
+            p1.LinkNext(p2);
             
             var queue = new BlockingCollection<int>();
             var sender = Task.Run(SendItems);
@@ -371,22 +371,13 @@ namespace Simpipe.Tests.Pipes
             }
         }
 
-        static void WaitCompletion<T>(IPipe<T> pipe)
+        static void WaitCompletion<T>(Pipe<T> pipe)
         {
             pipe.Complete();
             pipe.Completion.ConfigureAwait(false).GetAwaiter().GetResult();
         }
 
         static Pipe<TestItem> CreatePipe(ActionPipeBuilder<TestItem> builder) => builder.ToPipe();
-
-        Pipe<TestItem> CreatePipe(Action<TestItem> action) => CreatePipe(x =>
-        {
-            action(x);
-            return Task.CompletedTask;
-        });
-
-        Pipe<TestItem> CreatePipe(Func<TestItem, Task> action) => Pipe<TestItem>.Action(action);
-
         static TestItem CreateItem(string? data = null) => new() { Data = data };
 
         void Setup(Func<TestItem, Task> action)
@@ -405,22 +396,7 @@ namespace Simpipe.Tests.Pipes
             pipe = CreatePipe(options); 
         }
 
-        void Setup(Action<TestItem> action, Func<TestItem, bool> filter)
-        {
-            var options = Pipe<TestItem>.Action(action)
-                .Filter(filter)
-                .CancellationToken(cancellation.Token);
-
-            pipe = CreatePipe(options);
-        }
-
-        void Setup(Func<TestItem, IPipe<TestItem>> route, Action<TestItem> action)
-        {
-            var options = Pipe<TestItem>.Action(action).Route(route);
-            pipe = CreatePipe(options);
-        }
-
-        void SetupNext(Action<TestItem>? action = null, Func<TestItem, bool>? filter = null, Func<TestItem, IPipe<TestItem>>? route = null, IPipe<TestItem>? afterNext = null)
+        void SetupNext(Action<TestItem>? action = null, Func<TestItem, bool>? filter = null, Func<TestItem, Pipe<TestItem>>? route = null, Pipe<TestItem>? afterNext = null)
         {
             SetupNextAsync(x => {
                 Debug.Assert(action != null, nameof(action) + " != null");
@@ -429,7 +405,7 @@ namespace Simpipe.Tests.Pipes
             }, filter, route, afterNext);
         }
 
-        void SetupNextAsync(Func<TestItem, Task>? action = null, Func<TestItem, bool>? filter = null, Func<TestItem, IPipe<TestItem>>? route = null, IPipe<TestItem>? afterNext = null)
+        void SetupNextAsync(Func<TestItem, Task>? action = null, Func<TestItem, bool>? filter = null, Func<TestItem, Pipe<TestItem>>? route = null, Pipe<TestItem>? afterNext = null)
         {
             var options = Pipe<TestItem>.Action(action ?? (_ => Task.CompletedTask));
             if (filter != null) 
@@ -439,10 +415,10 @@ namespace Simpipe.Tests.Pipes
                 options = options.Route(route);
 
             next = options.ToPipe();
-            pipe.LinkTo(next);
+            pipe.LinkNext(next);
 
             if (afterNext != null)
-                next.LinkTo(afterNext);
+                next.LinkNext(afterNext);
         }
         
         void Cancel() => cancellation.Cancel();

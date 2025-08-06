@@ -18,6 +18,7 @@
 - **NUnit analyzer warnings**: Many existing tests use classic Assert methods instead of constraint model - not critical but noted for future cleanup
 - **Build + test cycle**: Following strict TDD cycle (red-green-refactor) with immediate testing after each change ensures stability
 - **Git commit patterns**: Repository follows descriptive commit messages with implementation context
+- **Flaky test discovered**: `BatchPipeFixture.Input_count()` has a race condition - fails when run with other tests but passes in isolation. Uses TaskCompletionSource blocker and AutoResetEvent timing that creates race condition between batch processing and InputCount checking. Pre-existing issue not related to PipeMock migration. Needs separate investigation.
 
 ## ActionBlock Implementation Insights
 

@@ -4,7 +4,7 @@ public sealed class ActionPipeBuilder<T>(PipeAction<T> action)
 {
     string id = "pipe-id";
     Func<T, bool>? filter;
-    Func<T, IPipe<T>>? route;
+    Func<T, Pipe<T>>? route;
 
     int? boundedCapacity;
     CancellationToken cancellationToken;
@@ -22,7 +22,7 @@ public sealed class ActionPipeBuilder<T>(PipeAction<T> action)
         return this;
     }
 
-    public ActionPipeBuilder<T> Route(Func<T, IPipe<T>> value)
+    public ActionPipeBuilder<T> Route(Func<T, Pipe<T>> value)
     {
         route = value;
         return this;

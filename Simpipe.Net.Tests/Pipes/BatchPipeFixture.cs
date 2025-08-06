@@ -42,13 +42,14 @@ namespace Simpipe.Tests.Pipes
                 await Task.Delay(100);
             });
 
-            var next = new PipeMock<string>("next");
-            pipe.LinkTo(next);
+            var nextReceived = new List<string>();
+            var nextPipe = PipeMock<string>.Create(id: "next", nextReceived.Add);
+            pipe.LinkNext(nextPipe);
             
             await Complete("foo");
-            SpinWait.SpinUntil(() => next.Received.Count > 0, TimeSpan.FromSeconds(2));
+            SpinWait.SpinUntil(() => nextReceived.Count > 0, TimeSpan.FromSeconds(2));
 
-            Assert.That(next.Received.Contains("foo"));
+            Assert.That(nextReceived, Does.Contain("foo"));
         }
 
         [Test]

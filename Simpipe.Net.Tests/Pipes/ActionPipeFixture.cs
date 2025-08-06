@@ -42,13 +42,14 @@ namespace Simpipe.Tests.Pipes
                 await Task.Delay(100);
             });
 
-            var next = new PipeMock("next");
-            pipe.LinkTo(next);
+            var nextReceived = new List<int>();
+            var nextPipe = PipeMock<int>.Create(id: "next", nextReceived.Add);
+            pipe.LinkNext(nextPipe);
             
             await Complete(42);
-            SpinWait.SpinUntil(() => next.Received.Count > 0, TimeSpan.FromSeconds(2));
+            SpinWait.SpinUntil(() => nextReceived.Count > 0, TimeSpan.FromSeconds(2));
 
-            Assert.That(next.Received.Contains(42));
+            Assert.That(nextReceived, Does.Contain(42));
         }
 
         async Task Complete(params int[] items)

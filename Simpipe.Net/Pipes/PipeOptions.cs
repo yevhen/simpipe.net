@@ -4,5 +4,5 @@ public record PipeOptions<T>(
     string Id,
     PipeAction<T> Action,
     Func<T, bool>? Filter,
-    Func<T, IPipe<T>>? Route
+    Func<T, Pipe<T>?>? Route
 );
