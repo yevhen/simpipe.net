@@ -48,12 +48,12 @@ public sealed class ActionPipeBuilder<T>(PipeAction<T> action)
 
     PipeOptions<T> Options() => new(id, action, filter, route);
 
-    public Pipe<T> ToPipe() => new(Options(), (execute, router) =>
+    public Pipe<T> ToPipe() => new(Options(), (execute, done) =>
         new ActionBlock<T>(
             boundedCapacity ?? degreeOfParallelism * 2,
             degreeOfParallelism,
             item => execute(new PipeItem<T>(item)),
-            router,
+            done,
             cancellationToken));
 
     public static implicit operator Pipe<T>(ActionPipeBuilder<T> builder) => builder.ToPipe();
