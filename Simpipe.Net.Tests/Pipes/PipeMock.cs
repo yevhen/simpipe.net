@@ -29,17 +29,37 @@ public static class PipeMock<T>
         new(options, (execute, done) => new BlockMock<T>(execute, done));
 }
 
-public class BlockMock<T>(Func<PipeItem<T>, Task> execute, Func<T, Task> done) : IBlock<T>
+public class BlockMock<T> : IBlock<T>
 {
+    readonly Func<PipeItem<T>, Task> execute;
+    readonly Func<T, Task> done;
+    readonly TaskCompletionSource completionSource = new();
+
+    public BlockMock(Func<PipeItem<T>, Task> execute, Func<T, Task> done)
+    {
+        this.execute = execute;
+        this.done = done;
+    }
+
     public int InputCount => 0;
 
     public Task Send(T item)
     {
         var pipeItem = new PipeItem<T>(item);
-        return execute(pipeItem).ContinueWith(_ => done(item));
+        return Task.Run(async () =>
+        {
+            await execute(pipeItem);
+            await done(item);
+        });
     }
 
-    public Task Complete() => Task.CompletedTask;
+    // Controllable completion
+    public Task Complete() => completionSource.Task;
+    
+    // Test control methods
+    public void CompleteNow() => completionSource.TrySetResult();
+    public void FailCompletion(Exception ex) => completionSource.TrySetException(ex);
+    public bool IsCompleted => completionSource.Task.IsCompleted;
 }
 
 internal static partial class TestingExtensions

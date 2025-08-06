@@ -170,14 +170,16 @@ public class PipelineFixture
 
         var completion = pipeline.Complete();
 
+        // Should NOT complete yet - waiting for pipe completion
         Assert.False(completion.IsCompleted);
         Assert.False(pipeline.Completion.IsCompleted);
 
-        // Real pipes complete automatically when Complete() is called
-        pipe.Complete();
+        // Manually trigger pipe completion
+        pipe.AsBlockMock().CompleteNow();
 
         await completion;
 
+        // Now pipeline should be completed
         Assert.True(pipeline.Completion.IsCompleted);
     }
 
@@ -195,8 +197,20 @@ public class PipelineFixture
         // Pipeline completion should wait for all pipes to complete
         var completion = pipeline.Complete();
 
-        // Should complete successfully (in real implementation, completion is immediate for these simple pipes)
+        // Should NOT complete yet - waiting for both pipes
+        Assert.False(completion.IsCompleted);
+        Assert.False(pipeline.Completion.IsCompleted);
+
+        // Complete first pipe - pipeline should still not be complete
+        first.AsBlockMock().CompleteNow();
+        await Task.Delay(10); // Give it a moment to potentially complete
+        Assert.False(completion.IsCompleted);
+        Assert.False(pipeline.Completion.IsCompleted);
+
+        // Complete second pipe - now pipeline should complete
+        second.AsBlockMock().CompleteNow();
         await completion;
+
         Assert.True(pipeline.Completion.IsCompleted);
         Assert.True(completion.IsCompleted);
     }
