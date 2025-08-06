@@ -1,6 +1,6 @@
 ﻿namespace Simpipe.Pipes;
 
-public sealed class ActionPipeOptions<T>(PipeAction<T> action)
+public sealed class ActionPipeBuilder<T>(PipeAction<T> action)
 {
     string id = "pipe-id";
     Func<T, bool>? filter;
@@ -10,37 +10,37 @@ public sealed class ActionPipeOptions<T>(PipeAction<T> action)
     CancellationToken cancellationToken;
     int degreeOfParallelism = 1;
 
-    public ActionPipeOptions<T> Id(string value)
+    public ActionPipeBuilder<T> Id(string value)
     {
         id = value;
         return this;
     }
 
-    public ActionPipeOptions<T> Filter(Func<T, bool> value)
+    public ActionPipeBuilder<T> Filter(Func<T, bool> value)
     {
         filter = value;
         return this;
     }
 
-    public ActionPipeOptions<T> Route(Func<T, IPipe<T>> value)
+    public ActionPipeBuilder<T> Route(Func<T, IPipe<T>> value)
     {
         route = value;
         return this;
     }
 
-    public ActionPipeOptions<T> CancellationToken(CancellationToken value)
+    public ActionPipeBuilder<T> CancellationToken(CancellationToken value)
     {
         cancellationToken = value;
         return this;
     }
 
-    public ActionPipeOptions<T> DegreeOfParallelism(int value)
+    public ActionPipeBuilder<T> DegreeOfParallelism(int value)
     {
         degreeOfParallelism = value;
         return this;
     }
 
-    public ActionPipeOptions<T> BoundedCapacity(int? value)
+    public ActionPipeBuilder<T> BoundedCapacity(int? value)
     {
         boundedCapacity = value;
         return this;
@@ -56,5 +56,5 @@ public sealed class ActionPipeOptions<T>(PipeAction<T> action)
             router,
             cancellationToken));
 
-    public static implicit operator Pipe<T>(ActionPipeOptions<T> options) => options.ToPipe();
+    public static implicit operator Pipe<T>(ActionPipeBuilder<T> builder) => builder.ToPipe();
 }

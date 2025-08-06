@@ -1,6 +1,6 @@
 ﻿namespace Simpipe.Pipes;
 
-public sealed class BatchPipeOptions<T>(int batchSize, PipeAction<T> action)
+public sealed class BatchPipeBuilder<T>(int batchSize, PipeAction<T> action)
 {
     string id = "pipe-id";
     Func<T, bool>? filter;
@@ -11,43 +11,43 @@ public sealed class BatchPipeOptions<T>(int batchSize, PipeAction<T> action)
     CancellationToken cancellationToken;
     int degreeOfParallelism = 1;
 
-    public BatchPipeOptions<T> Id(string value)
+    public BatchPipeBuilder<T> Id(string value)
     {
         id = value;
         return this;
     }
 
-    public BatchPipeOptions<T> Filter(Func<T, bool> value)
+    public BatchPipeBuilder<T> Filter(Func<T, bool> value)
     {
         filter = value;
         return this;
     }
 
-    public BatchPipeOptions<T> Route(Func<T, IPipe<T>> value)
+    public BatchPipeBuilder<T> Route(Func<T, IPipe<T>> value)
     {
         route = value;
         return this;
     }
 
-    public BatchPipeOptions<T> BatchTriggerPeriod(TimeSpan value)
+    public BatchPipeBuilder<T> BatchTriggerPeriod(TimeSpan value)
     {
         batchTriggerPeriod = value;
         return this;
     }
 
-    public BatchPipeOptions<T> CancellationToken(CancellationToken value)
+    public BatchPipeBuilder<T> CancellationToken(CancellationToken value)
     {
         cancellationToken = value;
         return this;
     }
 
-    public BatchPipeOptions<T> DegreeOfParallelism(int value)
+    public BatchPipeBuilder<T> DegreeOfParallelism(int value)
     {
         degreeOfParallelism = value;
         return this;
     }
 
-    public BatchPipeOptions<T> BoundedCapacity(int? value)
+    public BatchPipeBuilder<T> BoundedCapacity(int? value)
     {
         boundedCapacity = value;
         return this;
@@ -65,5 +65,5 @@ public sealed class BatchPipeOptions<T>(int batchSize, PipeAction<T> action)
             route,
             cancellationToken));
 
-    public static implicit operator Pipe<T>(BatchPipeOptions<T> options) => options.ToPipe();
+    public static implicit operator Pipe<T>(BatchPipeBuilder<T> builder) => builder.ToPipe();
 }

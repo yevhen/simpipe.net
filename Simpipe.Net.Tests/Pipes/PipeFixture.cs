@@ -380,7 +380,7 @@ namespace Simpipe.Tests.Pipes
             pipe.Completion.ConfigureAwait(false).GetAwaiter().GetResult();
         }
 
-        static Pipe<TestItem> CreatePipe(ActionPipeOptions<TestItem> options) => options.ToPipe();
+        static Pipe<TestItem> CreatePipe(ActionPipeBuilder<TestItem> builder) => builder.ToPipe();
 
         Pipe<TestItem> CreatePipe(Action<TestItem> action) => CreatePipe(x =>
         {
