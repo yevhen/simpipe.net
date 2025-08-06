@@ -10,22 +10,22 @@ public class BatchActionBlock<T> : IBlock<T>
         int batchSize,
         TimeSpan batchFlushInterval,
         int parallelism,
-        Func<T[], Task> action,
-        Func<T, Task> done,
+        Func<BlockItem<T>, Task> action,
+        Func<BlockItem<T>, Task> done,
         CancellationToken cancellationToken = default)
     {
         actionBlock = new ActionBlock<T>(
             capacity: 1,
             parallelism,
-            action: batch => action(batch.GetArray()),
-            done: async batch => await batch.Apply(done),
+            action,
+            done,
             cancellationToken);
 
         batchBlock = new TimerBatchBlock<T>(
             capacity,
             batchSize,
             batchFlushInterval,
-            done: batch => actionBlock.Send(new BlockItem<T>(batch)),
+            done: actionBlock.Send,
             cancellationToken);
     }
 

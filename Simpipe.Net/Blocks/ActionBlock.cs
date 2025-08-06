@@ -1,5 +1,4 @@
 using System.Threading.Channels;
-using Simpipe.Pipes;
 
 namespace Simpipe.Blocks;
 
@@ -57,6 +56,6 @@ public class ActionBlock<T> : IBlock<T>
         await processor;
     }
 
-    public void SetAction(Func<BlockItem<T>, Task> action) => this.action = BlockAction<T>.For(action);
-    public void SetDone(Func<BlockItem<T>, Task> done) => this.done = BlockAction<T>.For(done);
+    public void SetAction(Func<BlockItem<T>, Task> action) => this.action = new(action);
+    public void SetDone(Func<BlockItem<T>, Task> done) => this.done = new(done);
 }
