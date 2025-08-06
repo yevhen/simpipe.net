@@ -34,6 +34,7 @@
         readonly List<Func<T, IPipe<T>?>> routes = new();
         readonly Func<T, bool>? filter;
         readonly PipeAction<T> action;
+
         volatile int working;
         volatile int outputCount;
 
@@ -41,15 +42,15 @@
 
         internal Pipe(PipeOptions<T> options, PipeAction<T>? action = null)
         {
+            this.action = action ?? PipeAction<T>.None();
+
             Id = options.Id();
+            filter = options.Filter();
 
             var route = options.Route();
             if (route != null)
                 routes.Add(route);
-            
-            filter = options.Filter();
-            this.action = action ?? PipeAction<T>.None();
-            
+
             blockAction = PipeAction<T>.For(ExecuteAction);
         }
 
