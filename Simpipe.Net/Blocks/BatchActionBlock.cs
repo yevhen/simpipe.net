@@ -2,7 +2,7 @@ namespace Simpipe;
 
 public class BatchActionBlock<T> : IBlock<T>
 {
-    readonly BatchBlock<T> batchBlock;
+    readonly TimerBatchBlock<T> batchBlock;
     readonly ActionBlock<T[]> actionBlock;
 
     public BatchActionBlock(
@@ -24,7 +24,7 @@ public class BatchActionBlock<T> : IBlock<T>
             },
             cancellationToken);
 
-        batchBlock = new BatchBlock<T>(
+        batchBlock = new TimerBatchBlock<T>(
             capacity,
             batchSize,
             batchFlushInterval,
