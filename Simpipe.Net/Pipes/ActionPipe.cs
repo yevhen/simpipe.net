@@ -42,7 +42,7 @@ public sealed class ActionPipeOptions<T>(PipeAction<T> action) : PipeOptions<T>
         return this;
     }
 
-    public ActionPipe<T> ToPipe() => new(this);
+    public ActionPipe<T> ToPipe() => ActionPipe<T>.Create(this);
     public static implicit operator Pipe<T>(ActionPipeOptions<T> options) => options.ToPipe();
 
     public PipeAction<T> Action() => action;
@@ -57,13 +57,18 @@ public class ActionPipe<T> : Pipe<T>
     readonly int boundedCapacity;
     readonly TaskCompletionSource completion = new();
 
-    public ActionPipe(ActionPipeOptions<T> options) : base(options, options.Action())
+    ActionPipe(ActionPipeOptions<T> options) : base(options, options.Action())
     {
         boundedCapacity = options.BoundedCapacity() ?? options.DegreeOfParallelism() * 2;
 
         block = new ActionBlock<T>(boundedCapacity, options.DegreeOfParallelism(), Execute, RouteItem, options.CancellationToken());
 
         Block = block;
+    }
+
+    public static ActionPipe<T> Create(ActionPipeOptions<T> options)
+    {
+        return new ActionPipe<T>(options);
     }
 
     public override int InputCount => block.InputCount;

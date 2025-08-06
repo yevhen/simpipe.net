@@ -46,7 +46,7 @@ public sealed class BatchPipeOptions<T>(int batchSize, PipeAction<T> action) : P
         return this;
     }
 
-    public BatchPipe<T> ToPipe() => new(this);
+    public BatchPipe<T> ToPipe() => BatchPipe<T>.Create(this);
     public static implicit operator Pipe<T>(BatchPipeOptions<T> options) => options.ToPipe();
 
     public PipeAction<T> Action() => action;
@@ -60,7 +60,7 @@ public class BatchPipe<T> : Pipe<T>
     readonly BatchActionBlock<T> block;
     readonly TaskCompletionSource completion = new();
 
-    public BatchPipe(BatchPipeOptions<T> options) : base(options, options.Action())
+    BatchPipe(BatchPipeOptions<T> options) : base(options, options.Action())
     {
         block = new BatchActionBlock<T>(
             options.BoundedCapacity() ?? options.BatchSize(),
@@ -72,6 +72,11 @@ public class BatchPipe<T> : Pipe<T>
             options.CancellationToken());
 
         Block = block;
+    }
+
+    public static BatchPipe<T> Create(BatchPipeOptions<T> options)
+    {
+        return new BatchPipe<T>(options);
     }
 
     public override int InputCount => block.InputCount;
