@@ -58,7 +58,6 @@ public sealed class BatchPipeOptions<T>(int batchSize, PipeAction<T> action) : P
 public class BatchPipe<T> : Pipe<T>
 {
     readonly BatchActionBlock<T> block;
-    readonly TaskCompletionSource completion = new();
 
     BatchPipe(BatchPipeOptions<T> options) : base(options, options.Action())
     {
@@ -67,7 +66,7 @@ public class BatchPipe<T> : Pipe<T>
             options.BatchSize(),
             options.BatchTriggerPeriod() != TimeSpan.Zero ? options.BatchTriggerPeriod() : Timeout.InfiniteTimeSpan,
             options.DegreeOfParallelism(),
-            Execute,
+            blockAction.Execute,
             RouteItem,
             options.CancellationToken());
 
@@ -78,15 +77,6 @@ public class BatchPipe<T> : Pipe<T>
     {
         return new BatchPipe<T>(options);
     }
-
-    async Task<T[]> Execute(T[] item)
-    {
-        await ExecuteAction(item);
-        return item;
-    }
-
-    async Task ExecuteAction(T[] item) => await blockAction.Execute(item);
-
 
     public override IBlock<T> Block { get; }
 }

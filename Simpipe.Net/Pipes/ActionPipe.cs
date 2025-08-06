@@ -54,13 +54,16 @@ public sealed class ActionPipeOptions<T>(PipeAction<T> action) : PipeOptions<T>
 public class ActionPipe<T> : Pipe<T>
 {
     readonly ActionBlock<T> block;
-    readonly int boundedCapacity;
 
     ActionPipe(ActionPipeOptions<T> options) : base(options, options.Action())
     {
-        boundedCapacity = options.BoundedCapacity() ?? options.DegreeOfParallelism() * 2;
+        var boundedCapacity = options.BoundedCapacity() ?? options.DegreeOfParallelism() * 2;
 
-        block = new ActionBlock<T>(boundedCapacity, options.DegreeOfParallelism(), Execute, RouteItem, options.CancellationToken());
+        block = new ActionBlock<T>(boundedCapacity,
+            options.DegreeOfParallelism(),
+            blockAction.Execute,
+            RouteItem,
+            options.CancellationToken());
 
         Block = block;
     }
@@ -70,13 +73,5 @@ public class ActionPipe<T> : Pipe<T>
         return new ActionPipe<T>(options);
     }
 
-    async Task<T> Execute(T item)
-    {
-        await ExecuteAction(item);
-        return item;
-    }
-
-    async Task ExecuteAction(T item) => await blockAction.Execute(item);
-        
     public override IBlock<T> Block { get; }
 }
