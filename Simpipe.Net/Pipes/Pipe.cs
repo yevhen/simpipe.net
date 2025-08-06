@@ -4,7 +4,7 @@
     {
         string Id { get; }
         IPipe<T>? Next { get; set; }
-        
+
         IBlock<T> Block { get; }
         IBlock<T> Target(T item);
 
@@ -13,7 +13,7 @@
 
         void Complete();
         Task Completion { get; }
-        
+
         int InputCount { get; }
         int OutputCount { get; }
         int WorkingCount { get; }
@@ -41,7 +41,7 @@
 
         internal readonly PipeAction<T> blockAction;
 
-        public Pipe(PipeOptions<T> options)
+        public Pipe(PipeOptions<T> options, Func<Func<PipeItem<T>, Task>, Func<T, Task>, IBlock<T>> blockFactory)
         {
             Id = options.Id();
             filter = options.Filter();
@@ -52,6 +52,7 @@
                 routes.Add(route);
 
             blockAction = PipeAction<T>.For(ExecuteAction);
+            Block = blockFactory(blockAction.Execute, RouteItem);
         }
 
         public IBlock<T> Block { get; internal set; }

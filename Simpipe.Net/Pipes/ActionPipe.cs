@@ -45,7 +45,6 @@ public sealed class ActionPipeOptions<T>(PipeAction<T> action) : PipeOptions<T>(
     public Pipe<T> ToPipe() => ActionPipe<T>.Create(this);
     public static implicit operator Pipe<T>(ActionPipeOptions<T> options) => options.ToPipe();
 
-    public PipeAction<T> Action() => action;
     public int? BoundedCapacity() => boundedCapacity;
     public CancellationToken CancellationToken() => cancellationToken;
     public int DegreeOfParallelism() => degreeOfParallelism;
@@ -53,17 +52,11 @@ public sealed class ActionPipeOptions<T>(PipeAction<T> action) : PipeOptions<T>(
 
 public abstract class ActionPipe<T>
 {
-    public static Pipe<T> Create(ActionPipeOptions<T> options)
-    {
-        var pipe = new Pipe<T>(options);
-
-        pipe.Block = new ActionBlock<T>(
+    public static Pipe<T> Create(ActionPipeOptions<T> options) => new(options, (execute, route) =>
+        new ActionBlock<T>(
             options.BoundedCapacity() ?? options.DegreeOfParallelism() * 2,
             options.DegreeOfParallelism(),
-            pipe.blockAction.Execute,
-            pipe.RouteItem,
-            options.CancellationToken());
-
-        return pipe;
-    }
+            item => execute(new PipeItem<T>(item)),
+            route,
+            options.CancellationToken()));
 }

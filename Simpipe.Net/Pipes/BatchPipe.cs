@@ -49,7 +49,6 @@ public sealed class BatchPipeOptions<T>(int batchSize, PipeAction<T> action) : P
     public Pipe<T> ToPipe() => BatchPipe<T>.Create(this);
     public static implicit operator Pipe<T>(BatchPipeOptions<T> options) => options.ToPipe();
 
-    public PipeAction<T> Action() => action;
     public int? BoundedCapacity() => boundedCapacity;
     public CancellationToken CancellationToken() => cancellationToken;
     public int DegreeOfParallelism() => degreeOfParallelism;
@@ -59,16 +58,15 @@ public abstract class BatchPipe<T>
 {
     public static Pipe<T> Create(BatchPipeOptions<T> options)
     {
-        var pipe = new Pipe<T>(options);
-
-        pipe.Block = new BatchActionBlock<T>(
-            options.BoundedCapacity() ?? options.BatchSize(),
-            options.BatchSize(),
-            options.BatchTriggerPeriod() != TimeSpan.Zero ? options.BatchTriggerPeriod() : Timeout.InfiniteTimeSpan,
-            options.DegreeOfParallelism(),
-            pipe.blockAction.Execute,
-            pipe.RouteItem,
-            options.CancellationToken());
+        var pipe = new Pipe<T>(options, (execute, route) =>
+            new BatchActionBlock<T>(
+                options.BoundedCapacity() ?? options.BatchSize(),
+                options.BatchSize(),
+                options.BatchTriggerPeriod() != TimeSpan.Zero ? options.BatchTriggerPeriod() : Timeout.InfiniteTimeSpan,
+                options.DegreeOfParallelism(),
+                items => execute(new PipeItem<T>(items)),
+                route,
+                options.CancellationToken()));
 
         return pipe;
     }
