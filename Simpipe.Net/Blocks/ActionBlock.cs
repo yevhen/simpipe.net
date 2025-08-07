@@ -4,8 +4,8 @@ namespace Simpipe.Blocks;
 
 public class ActionBlock<T> : IBlock<T>
 {
-    BlockAction<T> action;
-    BlockAction<T> done;
+    BlockItemAction<T> action;
+    BlockItemAction<T> done;
 
     readonly CancellationToken cancellationToken;
     readonly Channel<BlockItem<T>> input;

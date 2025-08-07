@@ -6,23 +6,23 @@ namespace Simpipe.Tests.Pipes;
 public static class PipeMock<T>
 {
     public static Pipe<T> Create(Action<T> action) =>
-        Create(new PipeOptions<T>("id", BlockAction<T>.Sync(action), null, null));
+        Create(new PipeOptions<T>("id", BlockItemAction<T>.Sync(action), null, null));
 
     public static Pipe<T> Create(Action<T> action, Func<T, bool> filter) =>
-        Create(new PipeOptions<T>("id", BlockAction<T>.Sync(action), filter, null));
+        Create(new PipeOptions<T>("id", BlockItemAction<T>.Sync(action), filter, null));
 
     public static Pipe<T> Create(Action<T> action, Func<T, Pipe<T>?> route) =>
-        Create(new PipeOptions<T>("id", BlockAction<T>.Sync(action), null, route));
+        Create(new PipeOptions<T>("id", BlockItemAction<T>.Sync(action), null, route));
 
     public static Pipe<T> Create() => Create("id", _ => { });
 
     public static Pipe<T> Create(string id) => Create(id, _ => { });
 
     public static Pipe<T> Create(string id, Action<T> action) =>
-        Create(new PipeOptions<T>(id, BlockAction<T>.Sync(action), null, null));
+        Create(new PipeOptions<T>(id, BlockItemAction<T>.Sync(action), null, null));
 
     public static Pipe<T> Create(Action<T> action, Func<T, bool> filter, Func<T, Pipe<T>?> route) =>
-        Create(new PipeOptions<T>("id", BlockAction<T>.Sync(action), filter, route));
+        Create(new PipeOptions<T>("id", BlockItemAction<T>.Sync(action), filter, route));
 
     static Pipe<T> Create(PipeOptions<T> options) =>
         new(options, new BlockMock<T>());

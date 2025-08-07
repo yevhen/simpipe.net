@@ -2,7 +2,7 @@
 
 namespace Simpipe.Pipes;
 
-public sealed class ActionPipeBuilder<T>(BlockAction<T> action)
+public sealed class ActionPipeBuilder<T>(BlockItemAction<T> action)
 {
     string id = "pipe-id";
     Func<T, bool>? filter;

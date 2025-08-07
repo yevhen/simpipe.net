@@ -4,18 +4,18 @@ namespace Simpipe.Pipes;
 
 public class Pipe<T>
 {
-    public static ActionPipeBuilder<T> Action(Action<T> action) => new(BlockAction<T>.Sync(action));
-    public static ActionPipeBuilder<T> Action(Func<T, Task> action) => new(BlockAction<T>.Async(action));
+    public static ActionPipeBuilder<T> Action(Action<T> action) => new(BlockItemAction<T>.Sync(action));
+    public static ActionPipeBuilder<T> Action(Func<T, Task> action) => new(BlockItemAction<T>.Async(action));
 
-    public static BatchPipeBuilder<T> Batch(int batchSize, Action<T[]> action) => new(batchSize, BlockAction<T>.BatchSync(action));
-    public static BatchPipeBuilder<T> Batch(int batchSize, Func<T[], Task> action) => new(batchSize, BlockAction<T>.BatchAsync(action));
+    public static BatchPipeBuilder<T> Batch(int batchSize, Action<T[]> action) => new(batchSize, BlockItemAction<T>.BatchSync(action));
+    public static BatchPipeBuilder<T> Batch(int batchSize, Func<T[], Task> action) => new(batchSize, BlockItemAction<T>.BatchAsync(action));
 
     public string Id { get; }
     public Pipe<T>? Next { get; private set; }
 
     readonly List<Func<T, Pipe<T>?>> routes = [];
     readonly Func<T, bool>? filter;
-    readonly BlockAction<T> action;
+    readonly BlockItemAction<T> action;
     readonly TaskCompletionSource completion = new();
 
     volatile int workingCount;

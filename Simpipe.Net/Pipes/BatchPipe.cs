@@ -2,7 +2,7 @@
 
 namespace Simpipe.Pipes;
 
-public sealed class BatchPipeBuilder<T>(int batchSize, BlockAction<T> action)
+public sealed class BatchPipeBuilder<T>(int batchSize, BlockItemAction<T> action)
 {
     string id = "pipe-id";
     Func<T, bool>? filter;
