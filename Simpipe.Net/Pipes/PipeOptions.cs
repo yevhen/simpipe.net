@@ -1,10 +1,7 @@
-﻿using Simpipe.Blocks;
-
-namespace Simpipe.Pipes;
+﻿namespace Simpipe.Pipes;
 
 public record PipeOptions<T>(
     string Id,
-    BlockItemAction<T> Action,
-    Func<T, bool>? Filter,
-    Func<T, Pipe<T>?>? Route
+    Func<T, bool>? Filter = null,
+    Func<T, Pipe<T>?>? Route = null
 );

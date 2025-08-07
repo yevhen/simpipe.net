@@ -21,8 +21,6 @@ public class BatchBlock<T>
         processor = Task.Run(ProcessChannel, cancellationToken);
     }
 
-    public int InputCount => input.Reader.Count;
-
     async Task ProcessChannel()
     {
         while (await input.Reader.WaitToReadAsync(cancellationToken))

@@ -14,16 +14,8 @@ public class ActionBlockFixture
         var block = new ActionBlock<int>(
             capacity: 1,
             parallelism: 1,
-            action: item =>
-            {
-                processed = item;
-                return Task.CompletedTask;
-            },
-            done: item =>
-            {
-                completed = item;
-                return Task.CompletedTask;
-            });
+            action: BlockItemAction<int>.Sync(item => processed = item),
+            done: BlockItemAction<int>.Sync(item => completed = item));
 
         await block.Send(42);
         await block.Complete();
@@ -42,14 +34,14 @@ public class ActionBlockFixture
         var block = new ActionBlock<int>(
             capacity: 10,
             parallelism: 3, 
-            action: async _ => {
+            action: BlockItemAction<int>.Async(async _ => {
                 Interlocked.Increment(ref currentConcurrency);
                 maxConcurrency = Math.Max(maxConcurrency, currentConcurrency);
                 await Task.Delay(50);
                 Interlocked.Increment(ref processedCount);
                 Interlocked.Decrement(ref currentConcurrency);
-            },
-            done: _ => Task.CompletedTask);
+            }),
+            done: BlockItemAction<int>.Async(_ => Task.CompletedTask));
 
         for (var i = 0; i < 5; i++)
             await block.Send(i);

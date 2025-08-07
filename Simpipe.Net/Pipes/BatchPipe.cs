@@ -55,16 +55,16 @@ public sealed class BatchPipeBuilder<T>(int batchSize, BlockItemAction<T> action
         return this;
     }
 
-    PipeOptions<T> Options() => new(id, action, filter, route);
+    PipeOptions<T> Options() => new(id, filter, route);
 
-    public Pipe<T> ToPipe() => new(Options(),
+    public Pipe<T> ToPipe() => new(Options(), done =>
         new BatchActionBlock<T>(
             boundedCapacity ?? batchSize,
             batchSize,
             batchTriggerPeriod != TimeSpan.Zero ? batchTriggerPeriod : Timeout.InfiniteTimeSpan,
             degreeOfParallelism,
-            _ => Task.CompletedTask,
-            _ => Task.CompletedTask,
+            action,
+            done,
             cancellationToken));
 
     public static implicit operator Pipe<T>(BatchPipeBuilder<T> builder) => builder.ToPipe();

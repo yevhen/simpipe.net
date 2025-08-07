@@ -2,6 +2,8 @@
 
 public class BlockItemAction<T>(Func<BlockItem<T>, Task> action)
 {
+    public static readonly BlockItemAction<T> Noop = new(_ => Task.CompletedTask);
+    
     public static BlockItemAction<T> Sync(Action<T> action) => new(item =>
     {
         action(item.GetValue());

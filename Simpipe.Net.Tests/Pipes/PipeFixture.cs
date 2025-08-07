@@ -306,23 +306,6 @@ public class PipeFixture
     }
 
     [Test]
-    public async Task Working_count_for_single_value()
-    {
-        var blocker = new TaskCompletionSource();
-        Setup(_ => blocker.Task);
-
-        var t = Send(CreateItem());
-        await Task.Delay(10);
-
-        AssertWorkingCount(1);
-
-        blocker.SetResult();
-        await t;
-
-        AssertWorkingCount(0);
-    }
-
-    [Test]
     public async Task Integration_test()
     {
         var received1 = new List<int>();
@@ -449,8 +432,6 @@ public class PipeFixture
         foreach (var item in items)
             await pipe.Send(item);
     }
-
-    void AssertWorkingCount(int expected) => Assert.That(pipe.WorkingCount, Is.EqualTo(expected));
 
     class TestItem
     {

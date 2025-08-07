@@ -4,23 +4,21 @@ namespace Simpipe.Blocks;
 
 public class ActionBlock<T> : IBlock<T>
 {
-    BlockItemAction<T> action;
-    BlockItemAction<T> done;
-
-    readonly CancellationToken cancellationToken;
     readonly Channel<BlockItem<T>> input;
+    readonly BlockItemAction<T> action;
+    readonly BlockItemAction<T> done;
+    readonly CancellationToken cancellationToken;
     readonly Task processor;
 
     public ActionBlock(
         int capacity,
         int parallelism,
-        Func<BlockItem<T>, Task> action,
-        Func<BlockItem<T>, Task> done,
+        BlockItemAction<T> action,
+        BlockItemAction<T> done,
         CancellationToken cancellationToken = default)
     {
-        SetAction(action);
-        SetDone(done);
-
+        this.action = action;
+        this.done = done;
         this.cancellationToken = cancellationToken;
 
         input = Channel.CreateBounded<BlockItem<T>>(capacity);
@@ -28,8 +26,6 @@ public class ActionBlock<T> : IBlock<T>
             .Range(0, parallelism)
             .Select(_ => Task.Run(ProcessChannel, cancellationToken)));
     }
-
-    public int InputCount => input.Reader.Count;
 
     async Task ProcessChannel()
     {
@@ -55,7 +51,4 @@ public class ActionBlock<T> : IBlock<T>
         input.Writer.Complete();
         await processor;
     }
-
-    public void SetAction(Func<BlockItem<T>, Task> action) => this.action = new(action);
-    public void SetDone(Func<BlockItem<T>, Task> done) => this.done = new(done);
 }

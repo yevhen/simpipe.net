@@ -17,8 +17,8 @@ public class BatchActionBlockFixture
             batchSize: 2,
             batchFlushInterval: TimeSpan.FromMinutes(1),
             parallelism: 1,
-            action: async batch => await batches.Writer.WriteAsync(batch),
-            done: _ => Task.CompletedTask);
+            action: BlockItemAction<string>.BatchAsync(async batch => await batches.Writer.WriteAsync(batch)),
+            done: BlockItemAction<string>.BatchAsync(_ => Task.CompletedTask));
         
         for (var i = 1; i <= itemCount; i++)
             await batchActionBlock.Send($"i{i}");

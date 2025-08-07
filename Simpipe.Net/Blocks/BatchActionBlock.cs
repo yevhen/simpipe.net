@@ -10,8 +10,8 @@ public class BatchActionBlock<T> : IBlock<T>
         int batchSize,
         TimeSpan batchFlushInterval,
         int parallelism,
-        Func<BlockItem<T>, Task> action,
-        Func<BlockItem<T>, Task> done,
+        BlockItemAction<T> action,
+        BlockItemAction<T> done,
         CancellationToken cancellationToken = default)
     {
         actionBlock = new ActionBlock<T>(
@@ -29,8 +29,6 @@ public class BatchActionBlock<T> : IBlock<T>
             cancellationToken);
     }
 
-    public int InputCount => batchBlock.InputCount;
-
     public async Task Send(BlockItem<T> item) => await batchBlock.Send(item);
 
     public async Task Complete()
@@ -38,7 +36,4 @@ public class BatchActionBlock<T> : IBlock<T>
         await batchBlock.Complete();
         await actionBlock.Complete();
     }
-
-    public void SetAction(Func<BlockItem<T>, Task> action) => actionBlock.SetAction(action);
-    public void SetDone(Func<BlockItem<T>, Task> done) => actionBlock.SetDone(done);
 }

@@ -15,53 +15,29 @@ public class Pipe<T>
 
     readonly List<Func<T, Pipe<T>?>> routes = [];
     readonly Func<T, bool>? filter;
-    readonly BlockItemAction<T> action;
     readonly TaskCompletionSource completion = new();
 
-    volatile int workingCount;
-    volatile int outputCount;
-
-    public Pipe(PipeOptions<T> options, IBlock<T> block)
+    public Pipe(PipeOptions<T> options, Func<BlockItemAction<T>, IBlock<T>> blockFactory)
     {
         Id = options.Id;
         filter = options.Filter;
-        action = options.Action;
 
         var route = options.Route;
         if (route != null)
             routes.Add(route);
 
-        Block = block;
-
-        block.SetAction(ExecuteAction);
-        block.SetDone(RouteItem);
+        var done = new BlockItemAction<T>(RouteItem);
+        Block = blockFactory(done);
     }
 
     public IBlock<T> Block { get; }
-
-    async Task ExecuteAction(BlockItem<T> item)
-    {
-        Interlocked.Add(ref workingCount, item.Size);
-
-        await action.Execute(item);
-
-        Interlocked.Add(ref workingCount, -item.Size);
-    }
 
     IBlock<T> Target(T item) => FilterMatches(item)
         ? Block
         : RouteTarget(item);
 
     async Task RouteItem(BlockItem<T> item) => await item.Apply(RouteItem);
-
-    async Task RouteItem(T item)
-    {
-        Interlocked.Increment(ref outputCount);
-
-        await RouteTarget(item).Send(item);
-
-        Interlocked.Decrement(ref outputCount);
-    }
+    async Task RouteItem(T item) => await RouteTarget(item).Send(item);
 
     IBlock<T> RouteTarget(T item)
     {
@@ -95,10 +71,6 @@ public class Pipe<T>
         if (Next != null)
             await Next.Send(item);
     }
-
-    public int InputCount => Block.InputCount;
-    public int OutputCount => outputCount;
-    public int WorkingCount => workingCount;
 
     public void Complete() => BlockComplete();
     public Task Completion => AwaitCompletion();

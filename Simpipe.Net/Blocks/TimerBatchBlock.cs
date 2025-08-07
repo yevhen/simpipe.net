@@ -29,8 +29,6 @@ public class TimerBatchBlock<T>
         }
     }
 
-    public int InputCount => batchBlock.InputCount;
-
     async Task ProcessTimer()
     {
         while (await flushTimer.WaitForNextTickAsync(cancellationToken))
