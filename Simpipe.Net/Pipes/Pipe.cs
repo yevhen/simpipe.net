@@ -17,7 +17,7 @@ public class Pipe<T>
     readonly Func<T, bool>? filter;
     readonly TaskCompletionSource completion = new();
 
-    public Pipe(PipeOptions<T> options, Func<BlockItemAction<T>, IBlock<T>> blockFactory)
+    public Pipe(PipeOptions<T> options, Func<BlockItemAction<T>, IActionBlock<T>> blockFactory)
     {
         Id = options.Id;
         filter = options.Filter;
@@ -30,16 +30,16 @@ public class Pipe<T>
         Block = blockFactory(done);
     }
 
-    internal IBlock<T> Block { get; }
+    internal IActionBlock<T> Block { get; }
 
-    IBlock<T> Target(T item) => FilterMatches(item)
+    IActionBlock<T> Target(T item) => FilterMatches(item)
         ? Block
         : RouteTarget(item);
 
     async Task RouteItem(BlockItem<T> item) => await item.Apply(RouteItem);
     async Task RouteItem(T item) => await RouteTarget(item).Send(item);
 
-    IBlock<T> RouteTarget(T item)
+    IActionBlock<T> RouteTarget(T item)
     {
         var target = Route(item) ?? Next;
         return target == null

@@ -28,7 +28,7 @@ public static class PipeMock<T>
         new(options, done => new BlockMock<T>(action, done));
 }
 
-public class BlockMock<T>(BlockItemAction<T> action, BlockItemAction<T> done) : IBlock<T>
+public class BlockMock<T>(BlockItemAction<T> action, BlockItemAction<T> done) : IActionBlock<T>
 {
     readonly TaskCompletionSource completionSource = new();
 

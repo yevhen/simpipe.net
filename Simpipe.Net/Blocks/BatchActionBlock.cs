@@ -1,6 +1,6 @@
 namespace Simpipe.Blocks;
 
-public class BatchActionBlock<T> : IBlock<T>
+public class BatchActionBlock<T> : IActionBlock<T>
 {
     readonly TimerBatchBlock<T> batchBlock;
     readonly ActionBlock<T> actionBlock;

@@ -2,7 +2,13 @@ using System.Threading.Channels;
 
 namespace Simpipe.Blocks;
 
-public class ActionBlock<T> : IBlock<T>
+public interface IActionBlock<T>
+{
+    Task Send(BlockItem<T> item);
+    Task Complete();
+}
+
+public class ActionBlock<T> : IActionBlock<T>
 {
     readonly Channel<BlockItem<T>> input;
     readonly BlockItemAction<T> action;
@@ -51,4 +57,10 @@ public class ActionBlock<T> : IBlock<T>
         input.Writer.Complete();
         await processor;
     }
+}
+
+public static class ActionBlockExtensions
+{
+    public static Task Send<T>(this IActionBlock<T> block, T item) => block.Send(new BlockItem<T>(item));
+    public static Task Send<T>(this IActionBlock<T> block, T[] items) => block.Send(new BlockItem<T>(items));
 }

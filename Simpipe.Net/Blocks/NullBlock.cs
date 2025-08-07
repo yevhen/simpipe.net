@@ -1,6 +1,6 @@
 namespace Simpipe.Blocks;
 
-public class NullBlock<T> : IBlock<T>
+public class NullBlock<T> : IActionBlock<T>
 {
     public static NullBlock<T> Instance { get; } = new();
 
