@@ -31,6 +31,7 @@ public class Pipe<T>
     }
 
     public string Id { get; }
+    public IItemCounter ItemCounter => executor;
     internal IActionBlock<T> Block { get; }
 
     IActionBlock<T> Target(T item) => FilterMatches(item)

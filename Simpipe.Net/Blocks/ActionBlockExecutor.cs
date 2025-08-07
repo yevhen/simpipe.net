@@ -16,7 +16,7 @@ internal class DefaultExecutor<T> : IActionBlockExecutor<T>
     public Task ExecuteDone(BlockItem<T> item, BlockItemAction<T> done) => done.Execute(item);
 }
 
-internal interface IItemCounter
+public interface IItemCounter
 {
     int InputCount { get; }
     int OutputCount { get; }
