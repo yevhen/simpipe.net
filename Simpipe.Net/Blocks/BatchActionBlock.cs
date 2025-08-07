@@ -12,6 +12,7 @@ public class BatchActionBlock<T> : IActionBlock<T>
         int parallelism,
         BlockItemAction<T> action,
         BlockItemAction<T> done,
+        IActionBlockExecutor<T>? executor = null,
         CancellationToken cancellationToken = default)
     {
         actionBlock = new ActionBlock<T>(
@@ -19,6 +20,7 @@ public class BatchActionBlock<T> : IActionBlock<T>
             parallelism,
             action,
             done,
+            executor,
             cancellationToken);
 
         batchBlock = new TimerBatchBlock<T>(

@@ -56,6 +56,7 @@ public sealed class ActionPipeBuilder<T>(BlockItemAction<T> action)
             degreeOfParallelism,
             action,
             done,
+            null,
             cancellationToken));
 
     public static implicit operator Pipe<T>(ActionPipeBuilder<T> builder) => builder.ToPipe();

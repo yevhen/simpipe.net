@@ -65,6 +65,7 @@ public sealed class BatchPipeBuilder<T>(int batchSize, BlockItemAction<T> action
             degreeOfParallelism,
             action,
             done,
+            null,
             cancellationToken));
 
     public static implicit operator Pipe<T>(BatchPipeBuilder<T> builder) => builder.ToPipe();
