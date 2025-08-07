@@ -57,7 +57,7 @@ public sealed class BatchPipeBuilder<T>(int batchSize, BlockItemAction<T> action
 
     PipeOptions<T> Options() => new(id, filter, route);
 
-    public Pipe<T> ToPipe() => new(Options(), done =>
+    public Pipe<T> ToPipe() => new(Options(), (done, executor) =>
         new BatchActionBlock<T>(
             boundedCapacity ?? batchSize,
             batchSize,
@@ -65,7 +65,7 @@ public sealed class BatchPipeBuilder<T>(int batchSize, BlockItemAction<T> action
             degreeOfParallelism,
             action,
             done,
-            null,
+            executor,
             cancellationToken));
 
     public static implicit operator Pipe<T>(BatchPipeBuilder<T> builder) => builder.ToPipe();

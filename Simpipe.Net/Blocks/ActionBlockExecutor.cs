@@ -16,7 +16,14 @@ internal class DefaultExecutor<T> : IActionBlockExecutor<T>
     public Task ExecuteDone(BlockItem<T> item, BlockItemAction<T> done) => done.Execute(item);
 }
 
-internal class CountingExecutor<T> : IActionBlockExecutor<T>
+internal interface IItemCounter
+{
+    int InputCount { get; }
+    int OutputCount { get; }
+    int WorkingCount { get; }
+}
+
+internal class CountingExecutor<T> : IActionBlockExecutor<T>, IItemCounter
 {
     volatile int inputCount;
     volatile int outputCount;

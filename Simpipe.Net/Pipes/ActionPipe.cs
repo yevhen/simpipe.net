@@ -50,13 +50,13 @@ public sealed class ActionPipeBuilder<T>(BlockItemAction<T> action)
 
     PipeOptions<T> Options() => new(id, filter, route);
 
-    public Pipe<T> ToPipe() => new(Options(), done =>
+    public Pipe<T> ToPipe() => new(Options(), (done, executor) =>
         new ActionBlock<T>(
             boundedCapacity ?? degreeOfParallelism * 2,
             degreeOfParallelism,
             action,
             done,
-            null,
+            executor,
             cancellationToken));
 
     public static implicit operator Pipe<T>(ActionPipeBuilder<T> builder) => builder.ToPipe();

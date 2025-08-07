@@ -15,8 +15,9 @@ public class Pipe<T>
     readonly Func<T, bool>? filter;
     readonly List<Func<T, Pipe<T>?>> routes = [];
     readonly TaskCompletionSource completion = new();
+    readonly CountingExecutor<T> executor = new();
 
-    public Pipe(PipeOptions<T> options, Func<BlockItemAction<T>, IActionBlock<T>> blockFactory)
+    public Pipe(PipeOptions<T> options, Func<BlockItemAction<T>, IActionBlockExecutor<T>, IActionBlock<T>> blockFactory)
     {
         Id = options.Id;
         filter = options.Filter;
@@ -26,7 +27,7 @@ public class Pipe<T>
             routes.Add(route);
 
         var done = new BlockItemAction<T>(RouteItem);
-        Block = blockFactory(done);
+        Block = blockFactory(done, executor);
     }
 
     public string Id { get; }
