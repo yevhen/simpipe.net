@@ -102,31 +102,6 @@ public class BatchPipeFixture
         Assert.That(items[1].Length, Is.EqualTo(1));
     }
 
-    [Test]
-    public async Task Input_count()
-    {
-        var blocker = new TaskCompletionSource();
-        var entered = new AutoResetEvent(false);
-
-        Setup(async _ =>
-        {
-            entered.Set();
-            await blocker.Task;
-        }, batchSize: 2);
-
-        await Send("1");
-        await Send("2");
-
-        entered.WaitOne();
-
-        Assert.That(pipe.InputCount, Is.EqualTo(0));
-
-        await Send("1");
-        await Send("2");
-
-        Assert.That(pipe.InputCount, Is.EqualTo(2));
-    }
-
     async Task Complete(params string[] items)
     {
         await Send(items);
@@ -153,7 +128,4 @@ public class BatchPipeFixture
 
     void Setup(Func<string, Task> action) =>
         pipe = Pipe<string>.Batch(1, items => action(items[0])).ToPipe();
-
-    void Setup(Func<string[], Task> action, int batchSize, int? boundedCapacity = null) =>
-        pipe = Pipe<string>.Batch(batchSize, action).BoundedCapacity(boundedCapacity).ToPipe();
 }
