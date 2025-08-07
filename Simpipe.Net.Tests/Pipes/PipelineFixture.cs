@@ -23,19 +23,6 @@ public class PipelineFixture
     }
 
     [Test]
-    public void Linking_order()
-    {
-        var first = PipeMock<int>.Create(id: "1");
-        var second = PipeMock<int>.Create(id: "2");
-
-        pipeline.Add(first);
-        pipeline.Add(second);
-
-        Assert.That(first.Next, Is.EqualTo(second));
-        Assert.That(second.Next, Is.Null);
-    }
-
-    [Test]
     public async Task Send_delegates_to_head()
     {
         var firstProcessed = new List<int>();

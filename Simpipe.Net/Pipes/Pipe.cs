@@ -10,11 +10,10 @@ public class Pipe<T>
     public static BatchPipeBuilder<T> Batch(int batchSize, Action<T[]> action) => new(batchSize, BlockItemAction<T>.BatchSync(action));
     public static BatchPipeBuilder<T> Batch(int batchSize, Func<T[], Task> action) => new(batchSize, BlockItemAction<T>.BatchAsync(action));
 
-    public string Id { get; }
-    public Pipe<T>? Next { get; private set; }
+    Pipe<T>? next;
 
-    readonly List<Func<T, Pipe<T>?>> routes = [];
     readonly Func<T, bool>? filter;
+    readonly List<Func<T, Pipe<T>?>> routes = [];
     readonly TaskCompletionSource completion = new();
 
     public Pipe(PipeOptions<T> options, Func<BlockItemAction<T>, IActionBlock<T>> blockFactory)
@@ -30,6 +29,7 @@ public class Pipe<T>
         Block = blockFactory(done);
     }
 
+    public string Id { get; }
     internal IActionBlock<T> Block { get; }
 
     IActionBlock<T> Target(T item) => FilterMatches(item)
@@ -41,7 +41,7 @@ public class Pipe<T>
 
     IActionBlock<T> RouteTarget(T item)
     {
-        var target = Route(item) ?? Next;
+        var target = Route(item) ?? next;
         return target == null
             ? NullBlock<T>.Instance
             : target.Target(item);
@@ -68,8 +68,8 @@ public class Pipe<T>
 
     public async Task SendNext(T item)
     {
-        if (Next != null)
-            await Next.Send(item);
+        if (next != null)
+            await next.Send(item);
     }
 
     public void Complete() => BlockComplete();
@@ -85,7 +85,7 @@ public class Pipe<T>
     }
 
     public void LinkTo(Func<T, Pipe<T>?> route) => routes.Add(route);
-    public void LinkNext(Pipe<T>? next) => Next = next;
+    public void LinkNext(Pipe<T>? next) => this.next = next;
 
     Task BlockSend(T item) => Block.Send(item);
 
