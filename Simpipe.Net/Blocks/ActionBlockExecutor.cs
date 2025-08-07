@@ -28,22 +28,22 @@ internal class CountingExecutor<T> : IActionBlockExecutor<T>
 
     public async Task ExecuteSend(BlockItem<T> item, BlockItemAction<T> send)
     {
-        Interlocked.Increment(ref inputCount);
+        Interlocked.Add(ref inputCount, item.Size);
         await send.Execute(item);
-        Interlocked.Decrement(ref inputCount);
+        Interlocked.Add(ref inputCount, -item.Size);
     }
 
     public async Task ExecuteAction(BlockItem<T> item, BlockItemAction<T> action)
     {
-        Interlocked.Increment(ref workingCount);
+        Interlocked.Add(ref workingCount, item.Size);
         await action.Execute(item);
-        Interlocked.Decrement(ref workingCount);
+        Interlocked.Add(ref workingCount, -item.Size);
     }
 
     public async Task ExecuteDone(BlockItem<T> item, BlockItemAction<T> done)
     {
-        Interlocked.Increment(ref outputCount);
+        Interlocked.Add(ref outputCount, item.Size);
         await done.Execute(item);
-        Interlocked.Decrement(ref outputCount);
+        Interlocked.Add(ref outputCount, -item.Size);
     }
 }
