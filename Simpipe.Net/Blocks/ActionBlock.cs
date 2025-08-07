@@ -2,22 +2,6 @@ using System.Threading.Channels;
 
 namespace Simpipe.Blocks;
 
-public interface IActionBlockExecutor<T>
-{
-    Task ExecuteSend(BlockItem<T> item, BlockItemAction<T> send);
-    Task ExecuteAction(BlockItem<T> item, BlockItemAction<T> action);
-    Task ExecuteDone(BlockItem<T> item, BlockItemAction<T> done);
-}
-
-internal class DefaultActionBlockExecutor<T> : IActionBlockExecutor<T>
-{
-    public static DefaultActionBlockExecutor<T> Instance { get; } = new();
-
-    public Task ExecuteSend(BlockItem<T> item, BlockItemAction<T> send) => send.Execute(item);
-    public Task ExecuteAction(BlockItem<T> item, BlockItemAction<T> action) => action.Execute(item);
-    public Task ExecuteDone(BlockItem<T> item, BlockItemAction<T> done) => done.Execute(item);
-}
-
 public interface IActionBlock<T>
 {
     Task Send(BlockItem<T> item);
@@ -45,7 +29,7 @@ public class ActionBlock<T> : IActionBlock<T>
         this.action = action;
         this.done = done;
         this.cancellationToken = cancellationToken;
-        this.executor = executor ?? DefaultActionBlockExecutor<T>.Instance;
+        this.executor = executor ?? DefaultExecutor<T>.Instance;
 
         input = Channel.CreateBounded<BlockItem<T>>(capacity);
 
