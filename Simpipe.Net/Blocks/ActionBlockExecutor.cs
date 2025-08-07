@@ -37,11 +37,11 @@ internal class CountingExecutor<T> : IActionBlockExecutor<T>, IItemCounter
     {
         Interlocked.Add(ref inputCount, item.Size);
         await send.Execute(item);
-        Interlocked.Add(ref inputCount, -item.Size);
     }
 
     public async Task ExecuteAction(BlockItem<T> item, BlockItemAction<T> action)
     {
+        Interlocked.Add(ref inputCount, -item.Size);
         Interlocked.Add(ref workingCount, item.Size);
         await action.Execute(item);
         Interlocked.Add(ref workingCount, -item.Size);

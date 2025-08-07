@@ -18,18 +18,18 @@ public class CountingExecutorFixture
     {
         var executor = new CountingExecutor<int>();
 
-        var inputCount = 0;
-        await executor.ExecuteSend(Item, BlockItemAction<int>.BatchSync(_ => inputCount = executor.InputCount));
+        await executor.ExecuteSend(Item, BlockItemAction<int>.Noop);
 
-        Assert.That(inputCount, Is.EqualTo(3));
+        Assert.That(executor.InputCount, Is.EqualTo(3));
     }
 
     [Test]
-    public async Task Input_count_decrements_on_send_complete()
+    public async Task Input_count_decrements_on_action_execute()
     {
         var executor = new CountingExecutor<int>();
 
         await executor.ExecuteSend(Item, BlockItemAction<int>.Noop);
+        await executor.ExecuteAction(Item, BlockItemAction<int>.Noop);
 
         Assert.That(executor.InputCount, Is.EqualTo(0));
     }
