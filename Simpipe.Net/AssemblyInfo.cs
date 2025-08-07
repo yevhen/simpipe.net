@@ -1,3 +1,3 @@
 using System.Runtime.CompilerServices;
 
-[assembly: InternalsVisibleTo("Youscan.Core.Tests")]
+[assembly: InternalsVisibleTo("Simpipe.Net.Tests")]

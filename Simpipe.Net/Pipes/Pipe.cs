@@ -30,7 +30,7 @@ public class Pipe<T>
         Block = blockFactory(done);
     }
 
-    public IBlock<T> Block { get; }
+    internal IBlock<T> Block { get; }
 
     IBlock<T> Target(T item) => FilterMatches(item)
         ? Block
