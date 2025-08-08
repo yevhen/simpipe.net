@@ -1,33 +1,98 @@
-namespace Simpipe.Pipes;
+namespace Simpipe.Blocks;
 
 [TestFixture]
 public class ParallelBlockFixture
 {
     class TestItem
     {
-        public int Id { get; set; }
-        public string? Value { get; set; }
-        public int EnrichedValue { get; set; }
+        public int Id = 0;
+        public string Block1Value;
+        public string Block2Value;
+    }
+
+    class CompletionTrackingExecutor<T> : DefaultExecutor<T>
+        where T : notnull
+    {
+        readonly ActionBlock<T> completion;
+        readonly Dictionary<T, int> completed = new();
+        readonly int count;
+        readonly Func<T, Task> done;
+
+        public CompletionTrackingExecutor(int count, Func<T, Task> done)
+        {
+            this.count = count;
+            this.done = done;
+
+            completion = new ActionBlock<T>(capacity: 1, parallelism: 1, BlockItemAction<T>.Async(TrackDone));
+        }
+
+        async Task TrackDone(T item)
+        {
+            if (completed.TryGetValue(item, out var currentCount))
+                completed[item] = currentCount + 1;
+            else
+                completed[item] = 1;
+
+            if (completed[item] == count)
+                await done(item);
+        }
+
+        public override async Task ExecuteDone(IActionBlock<T> block, BlockItem<T> item, BlockItemAction<T> done)
+        {
+            await base.ExecuteDone(block, item, done);
+            await completion.Send(item);
+        }
     }
 
     [Test]
-    public async Task Should_execute_single_action()
+    public async Task Awaits_all_inner_blocks_before_reporting_done()
     {
-        var item = new TestItem { Id = 1, Value = "test" };
-        var enriched = false;
-        
-        var parallelBlock = Pipe<TestItem>
+        var item = new TestItem { Block1Value = "", Block2Value = "" };
 
-        await parallelBlock.Send(item);
-        await Complete(parallelBlock);
+        var doneItems = new List<TestItem>();
 
-        Assert.That(enriched, Is.True);
-        Assert.That(item.EnrichedValue, Is.EqualTo(2));
-    }
+        var executor = new CompletionTrackingExecutor<TestItem>(
+            count: 2,
+            done: x =>
+            {
+                doneItems.Add(x);
+                return Task.CompletedTask;
+            });
 
-    static async Task Complete(Pipe<TestItem> pipe)
-    {
-        pipe.Complete();
-        await pipe.Completion;
+        var tcs1 = new TaskCompletionSource();
+        var tcs2 = new TaskCompletionSource();
+
+        var innerBlock1 = new ActionBlock<TestItem>(
+            capacity: 1,
+            parallelism: 1,
+            BlockItemAction<TestItem>.Async(i =>
+            {
+                i.Block1Value = "1";
+                return tcs1.Task;
+            }),
+            executor: executor);
+
+        var innerBlock2 = new ActionBlock<TestItem>(
+            capacity: 1,
+            parallelism: 1,
+            BlockItemAction<TestItem>.Async(i =>
+            {
+                i.Block2Value = "2";
+                return tcs2.Task;
+            }),
+            executor: executor);
+
+        await innerBlock1.Send(item);
+        await innerBlock2.Send(item);
+
+        await Task.Delay(10);
+
+        tcs1.SetResult();
+        tcs2.SetResult();
+
+        Assert.That(item.Block1Value, Is.EqualTo("1"));
+        Assert.That(item.Block2Value, Is.EqualTo("2"));
+        Assert.That(doneItems, Has.Count.EqualTo(1));
+        Assert.That(doneItems[0], Is.SameAs(item));
     }
 }

@@ -52,13 +52,13 @@ public class ActionBlock<T> : IActionBlock<T>
 
     async Task ProcessItem(BlockItem<T> item)
     {
-        await executor.ExecuteAction(item, action);
+        await executor.ExecuteAction(this, item, action);
 
         if (!cancellationToken.IsCancellationRequested)
-            await executor.ExecuteDone(item, done);
+            await executor.ExecuteDone(this, item, done);
     }
 
-    public async Task Send(BlockItem<T> item) => await executor.ExecuteSend(item, send);
+    public async Task Send(BlockItem<T> item) => await executor.ExecuteSend(this, item, send);
 
     public async Task Complete()
     {

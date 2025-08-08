@@ -2,19 +2,18 @@ namespace Simpipe.Blocks;
 
 public interface IActionBlockExecutor<T>
 {
-    Task ExecuteSend(BlockItem<T> item, BlockItemAction<T> send);
-    Task ExecuteAction(BlockItem<T> item, BlockItemAction<T> action);
-    Task ExecuteDone(BlockItem<T> item, BlockItemAction<T> done);
+    Task ExecuteSend(IActionBlock<T> block, BlockItem<T> item, BlockItemAction<T> send);
+    Task ExecuteAction(IActionBlock<T> block, BlockItem<T> item, BlockItemAction<T> action);
+    Task ExecuteDone(IActionBlock<T> block, BlockItem<T> item, BlockItemAction<T> done);
 }
 
 internal class DefaultExecutor<T> : IActionBlockExecutor<T>
 {
     public static DefaultExecutor<T> Instance { get; } = new();
 
-    public Task ExecuteSend(BlockItem<T> item, BlockItemAction<T> send) => send.Execute(item);
-    public Task ExecuteAction(BlockItem<T> item, BlockItemAction<T> action) => action.Execute(item);
-    public Task ExecuteDone(BlockItem<T> item, BlockItemAction<T> done) => done.Execute(item);
-}
+    public Task ExecuteSend(IActionBlock<T> block, BlockItem<T> item, BlockItemAction<T> send) => send.Execute(item);
+    public Task ExecuteAction(IActionBlock<T> block, BlockItem<T> item, BlockItemAction<T> action) => action.Execute(item);
+    public Task ExecuteDone(IActionBlock<T> block, BlockItem<T> item, BlockItemAction<T> done) => done.Execute(item);}
 
 public interface IItemCounter
 {
@@ -33,13 +32,13 @@ internal class CountingExecutor<T> : IActionBlockExecutor<T>, IItemCounter
     public int OutputCount => outputCount;
     public int WorkingCount => workingCount;
 
-    public async Task ExecuteSend(BlockItem<T> item, BlockItemAction<T> send)
+    public async Task ExecuteSend(IActionBlock<T> block, BlockItem<T> item, BlockItemAction<T> send)
     {
         Interlocked.Add(ref inputCount, item.Size);
         await send.Execute(item);
     }
 
-    public async Task ExecuteAction(BlockItem<T> item, BlockItemAction<T> action)
+    public async Task ExecuteAction(IActionBlock<T> block, BlockItem<T> item, BlockItemAction<T> action)
     {
         Interlocked.Add(ref inputCount, -item.Size);
         Interlocked.Add(ref workingCount, item.Size);
@@ -47,7 +46,7 @@ internal class CountingExecutor<T> : IActionBlockExecutor<T>, IItemCounter
         Interlocked.Add(ref workingCount, -item.Size);
     }
 
-    public async Task ExecuteDone(BlockItem<T> item, BlockItemAction<T> done)
+    public async Task ExecuteDone(IActionBlock<T> block, BlockItem<T> item, BlockItemAction<T> done)
     {
         Interlocked.Add(ref outputCount, item.Size);
         await done.Execute(item);
