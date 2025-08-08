@@ -69,7 +69,6 @@ public class ParallelBlockFixture
             DefaultExecutor<TestItem>.Instance);
 
         var tcs1 = new TaskCompletionSource();
-        var tcs2 = new TaskCompletionSource();
 
         var innerBlock1 = new ActionBlock<TestItem>(
             capacity: 1,
@@ -87,20 +86,21 @@ public class ParallelBlockFixture
             BlockItemAction<TestItem>.Async(i =>
             {
                 i.Block2Value = "2";
-                return tcs2.Task;
+                return Task.CompletedTask;
             }),
             executor: executor);
 
         await innerBlock1.Send(item);
         await innerBlock2.Send(item);
-
         await Task.Delay(10);
-
-        tcs1.SetResult();
-        tcs2.SetResult();
 
         Assert.That(item.Block1Value, Is.EqualTo("1"));
         Assert.That(item.Block2Value, Is.EqualTo("2"));
+        Assert.That(doneItems, Has.Count.EqualTo(0));
+
+        tcs1.SetResult();
+        await Task.Delay(10);
+
         Assert.That(doneItems, Has.Count.EqualTo(1));
         Assert.That(doneItems[0], Is.SameAs(item));
     }
