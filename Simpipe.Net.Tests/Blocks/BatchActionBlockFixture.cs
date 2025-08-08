@@ -16,8 +16,7 @@ public class BatchActionBlockFixture
             batchSize: 2,
             batchFlushInterval: TimeSpan.FromMinutes(1),
             parallelism: 1,
-            action: BlockItemAction<string>.BatchAsync(async batch => await batches.Writer.WriteAsync(batch)),
-            done: BlockItemAction<string>.BatchAsync(_ => Task.CompletedTask));
+            action: BlockItemAction<string>.BatchAsync(async batch => await batches.Writer.WriteAsync(batch)));
         
         for (var i = 1; i <= itemCount; i++)
             await batchActionBlock.Send($"i{i}");
@@ -46,8 +45,7 @@ public class BatchActionBlockFixture
                 if (batch.Contains("error"))
                     throw new ArgumentException("Test exception");
                 processedBatches.Add(batch);
-            }),
-            done: BlockItemAction<string>.BatchSync(_ => { }));
+            }));
 
         await batchActionBlock.Send("item1");
         await batchActionBlock.Send("item2");

@@ -22,12 +22,12 @@ public class ActionBlock<T> : IActionBlock<T>
         int capacity,
         int parallelism,
         BlockItemAction<T> action,
-        BlockItemAction<T> done,
+        BlockItemAction<T>? done = null,
         IActionBlockExecutor<T>? executor = null,
         CancellationToken cancellationToken = default)
     {
         this.action = action;
-        this.done = done;
+        this.done = done ?? BlockItemAction<T>.Noop;
         this.cancellationToken = cancellationToken;
         this.executor = executor ?? DefaultExecutor<T>.Instance;
 

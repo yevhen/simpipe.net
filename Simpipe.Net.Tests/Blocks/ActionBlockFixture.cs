@@ -38,8 +38,7 @@ public class ActionBlockFixture
                 await Task.Delay(50);
                 Interlocked.Increment(ref processedCount);
                 Interlocked.Decrement(ref currentConcurrency);
-            }),
-            done: BlockItemAction<int>.Async(_ => Task.CompletedTask));
+            }));
 
         for (var i = 0; i < 5; i++)
             await block.Send(i);
@@ -63,8 +62,7 @@ public class ActionBlockFixture
                 if (item == 2)
                     throw new ArgumentException("Test exception");
                 processedItems.Add(item);
-            }),
-            done: BlockItemAction<int>.Sync(_ => { }));
+            }));
 
         await block.Send(1);
         await block.Send(2);

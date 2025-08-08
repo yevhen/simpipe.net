@@ -11,7 +11,7 @@ public class BatchActionBlock<T> : IActionBlock<T>
         TimeSpan batchFlushInterval,
         int parallelism,
         BlockItemAction<T> action,
-        BlockItemAction<T> done,
+        BlockItemAction<T>? done = null,
         IActionBlockExecutor<T>? executor = null,
         CancellationToken cancellationToken = default)
     {
