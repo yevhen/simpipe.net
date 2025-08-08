@@ -27,16 +27,18 @@ public async Task Should_execute_single_action_enrichment()
     var item = new TestItem { Id = 1, Value = "test" };
     var enriched = false;
     
-    var parallel = new ParallelBuilder<TestItem>()
-        .Action<int, int>()
-            .Extract(item => item.Id)
-            .Execute(async id => { await Task.Delay(1); return id * 2; })
-            .Apply((item, result) => { item.EnrichedValue = result; enriched = true; })
-        .Build();
+    var pipe = Pipe<TestItem>
+        .Parallel(p => p
+            .Action<int, int>()
+                .Extract(item => item.Id)
+                .Execute(async id => { await Task.Delay(1); return id * 2; })
+                .Apply((item, result) => { item.EnrichedValue = result; enriched = true; }))
+        .Id("enricher")
+        .ToPipe();
     
-    var block = new ParallelBlock<TestItem>(parallel);
-    await block.Send(new BlockItem<TestItem>(item));
-    await block.Complete();
+    await pipe.Send(item);
+    pipe.Complete();
+    await pipe.Completion;
     
     Assert.That(enriched, Is.True);
     Assert.That(item.EnrichedValue, Is.EqualTo(2));
@@ -62,35 +64,36 @@ public async Task Should_execute_multiple_enrichments_in_parallel()
     var executionOrder = new ConcurrentBag<string>();
     var applicationOrder = new List<string>();
     
-    var parallel = new ParallelBuilder<TestItem>()
-        .Action<int, int>()
-            .Extract(item => item.Id)
-            .Execute(async id => { 
-                executionOrder.Add("id");
-                await Task.Delay(50);
-                return id * 2;
-            })
-            .Apply((item, result) => {
-                applicationOrder.Add("id");
-                item.EnrichedId = result;
-            })
-        .Action<string, int>()
-            .Extract(item => item.Text)
-            .Execute(async text => {
-                executionOrder.Add("text");
-                await Task.Delay(10);
-                return text.Length;
-            })
-            .Apply((item, result) => {
-                applicationOrder.Add("text");
-                item.TextLength = result;
-            })
-        .Build();
+    var pipe = Pipe<TestItem>
+        .Parallel(p => p
+            .Action<int, int>()
+                .Extract(item => item.Id)
+                .Execute(async id => { 
+                    executionOrder.Add("id");
+                    await Task.Delay(50);
+                    return id * 2;
+                })
+                .Apply((item, result) => {
+                    applicationOrder.Add("id");
+                    item.EnrichedId = result;
+                })
+            .Action<string, int>()
+                .Extract(item => item.Text)
+                .Execute(async text => {
+                    executionOrder.Add("text");
+                    await Task.Delay(10);
+                    return text.Length;
+                })
+                .Apply((item, result) => {
+                    applicationOrder.Add("text");
+                    item.TextLength = result;
+                }))
+        .Id("enricher")
+        .ToPipe();
     
-    // Execute
-    var block = new ParallelBlock<TestItem>(parallel);
-    await block.Send(new BlockItem<TestItem>(item));
-    await block.Complete();
+    await pipe.Send(item);
+    pipe.Complete();
+    await pipe.Completion;
     
     // Verify parallel execution (both started before either finished)
     Assert.That(executionOrder.Count, Is.EqualTo(2));
@@ -122,21 +125,23 @@ public async Task Should_skip_enrichment_when_condition_false()
     
     var executedFor = new List<int>();
     
-    var parallel = new ParallelBuilder<TestItem>()
-        .Action<string, int>()
-            .Extract(item => item.Text)
-            .Execute(async text => { 
-                executedFor.Add(items.First(i => i.Text == text).Id);
-                return text.Length;
-            })
-            .Apply((item, result) => item.TextLength = result)
-            .Filter(item => !string.IsNullOrEmpty(item.Text))
-        .Build();
+    var pipe = Pipe<TestItem>
+        .Parallel(p => p
+            .Action<string, int>()
+                .Extract(item => item.Text)
+                .Execute(async text => { 
+                    executedFor.Add(items.First(i => i.Text == text).Id);
+                    return text.Length;
+                })
+                .Apply((item, result) => item.TextLength = result)
+                .Filter(item => !string.IsNullOrEmpty(item.Text)))
+        .Id("enricher")
+        .ToPipe();
     
-    var block = new ParallelBlock<TestItem>(parallel);
     foreach (var item in items)
-        await block.Send(new BlockItem<TestItem>(item));
-    await block.Complete();
+        await pipe.Send(item);
+    pipe.Complete();
+    await pipe.Completion;
     
     Assert.That(executedFor, Is.EqualTo(new[] { 1 }));
     Assert.That(items[0].TextLength, Is.EqualTo(5));
@@ -161,30 +166,30 @@ public async Task Should_cancel_all_enrichments_on_first_failure()
     var started = new ConcurrentBag<string>();
     var completed = new ConcurrentBag<string>();
     
-    var parallel = new ParallelBuilder<TestItem>()
-        .Action<int, int>()
-            .Extract(_ => 1)
-            .Execute(async _ => {
-                started.Add("fast");
-                await Task.Delay(10);
-                throw new InvalidOperationException("fast failed");
-            })
-            .Apply((_, __) => completed.Add("fast"))
-        .Action<int, int>()
-            .Extract(_ => 2)
-            .Execute(async _ => {
-                started.Add("slow");
-                await Task.Delay(100);
-                completed.Add("slow");
-                return 42;
-            })
-            .Apply((_, __) => completed.Add("slow-applied"))
-        .Build();
-    
-    var block = new ParallelBlock<TestItem>(parallel);
+    var pipe = Pipe<TestItem>
+        .Parallel(p => p
+            .Action<int, int>()
+                .Extract(_ => 1)
+                .Execute(async _ => {
+                    started.Add("fast");
+                    await Task.Delay(10);
+                    throw new InvalidOperationException("fast failed");
+                })
+                .Apply((_, __) => completed.Add("fast"))
+            .Action<int, int>()
+                .Extract(_ => 2)
+                .Execute(async _ => {
+                    started.Add("slow");
+                    await Task.Delay(100);
+                    completed.Add("slow");
+                    return 42;
+                })
+                .Apply((_, __) => completed.Add("slow-applied")))
+        .Id("enricher")
+        .ToPipe();
     
     var ex = Assert.ThrowsAsync<InvalidOperationException>(
-        async () => await block.Send(new BlockItem<TestItem>(item)));
+        async () => await pipe.Send(item));
     
     Assert.That(ex.Message, Is.EqualTo("fast failed"));
     Assert.That(started.Count, Is.EqualTo(2)); // Both started
@@ -211,26 +216,27 @@ public async Task Should_execute_batch_enrichment()
         new TestItem { Id = 3, Text = "test" }
     };
     
-    var parallel = new ParallelBuilder<TestItem>()
-        .Batch<Dictionary<int, string>, Dictionary<int, int>>()
-            .ExtractBatch(items => items.ToDictionary(i => i.Id, i => i.Text))
-            .Execute(async dict => {
-                await Task.Delay(10);
-                return dict.ToDictionary(kv => kv.Key, kv => kv.Value.Length);
-            })
-            .ApplyBatch((items, result) => {
-                foreach (var item in items)
-                    item.BatchLength = result[item.Id];
-            })
-            .BatchSize(2)
-        .Build();
-    
-    var block = new ParallelBlock<TestItem>(parallel);
+    var pipe = Pipe<TestItem>
+        .Parallel(p => p
+            .Batch<Dictionary<int, string>, Dictionary<int, int>>()
+                .Extract(items => items.ToDictionary(i => i.Id, i => i.Text))
+                .Execute(async dict => {
+                    await Task.Delay(10);
+                    return dict.ToDictionary(kv => kv.Key, kv => kv.Value.Length);
+                })
+                .Apply((items, result) => {
+                    foreach (var item in items)
+                        item.BatchLength = result[item.Id];
+                })
+                .BatchSize(2))
+        .Id("enricher")
+        .ToPipe();
     
     // Send 3 items - should trigger 2 batches
     foreach (var item in items)
-        await block.Send(new BlockItem<TestItem>(item));
-    await block.Complete();
+        await pipe.Send(item);
+    pipe.Complete();
+    await pipe.Completion;
     
     Assert.That(items[0].BatchLength, Is.EqualTo(5));
     Assert.That(items[1].BatchLength, Is.EqualTo(5));
@@ -256,26 +262,29 @@ public async Task Should_flush_batch_on_timeout()
     var item = new TestItem { Id = 1 };
     var batchExecuted = false;
     
-    var parallel = new ParallelBuilder<TestItem>()
-        .Batch<List<int>, Dictionary<int, int>>()
-            .ExtractBatch(items => items.Select(i => i.Id).ToList())
-            .Execute(async ids => {
-                batchExecuted = true;
-                return ids.ToDictionary(id => id, id => id * 10);
-            })
-            .ApplyBatch((items, result) => {
-                foreach (var item in items)
-                    item.BatchResult = result[item.Id];
-            })
-            .BatchSize(10)
-            .BatchTriggerPeriod(TimeSpan.FromMilliseconds(50))
-        .Build();
+    var pipe = Pipe<TestItem>
+        .Parallel(p => p
+            .Batch<List<int>, Dictionary<int, int>>()
+                .Extract(items => items.Select(i => i.Id).ToList())
+                .Execute(async ids => {
+                    batchExecuted = true;
+                    return ids.ToDictionary(id => id, id => id * 10);
+                })
+                .Apply((items, result) => {
+                    foreach (var item in items)
+                        item.BatchResult = result[item.Id];
+                })
+                .BatchSize(10)
+                .BatchTriggerPeriod(TimeSpan.FromMilliseconds(50)))
+        .Id("enricher")
+        .ToPipe();
     
-    var block = new ParallelBlock<TestItem>(parallel);
-    await block.Send(new BlockItem<TestItem>(item));
+    await pipe.Send(item);
     
     // Wait for timeout
     await Task.Delay(100);
+    pipe.Complete();
+    await pipe.Completion;
     
     Assert.That(batchExecuted, Is.True);
     Assert.That(item.BatchResult, Is.EqualTo(10));
@@ -298,26 +307,27 @@ public async Task Should_respect_per_enrichment_parallelism()
     var maxConcurrency = 0;
     var currentConcurrency = 0;
     
-    var parallel = new ParallelBuilder<TestItem>()
-        .Action<int, int>()
-            .Extract(item => item.Id)
-            .Execute(async id => {
-                Interlocked.Increment(ref currentConcurrency);
-                maxConcurrency = Math.Max(maxConcurrency, currentConcurrency);
-                await Task.Delay(50);
-                Interlocked.Decrement(ref currentConcurrency);
-                return id;
-            })
-            .Apply((item, result) => item.Result = result)
-            .DegreeOfParallelism(2)
-        .Build();
-    
-    var block = new ParallelBlock<TestItem>(parallel);
+    var pipe = Pipe<TestItem>
+        .Parallel(p => p
+            .Action<int, int>()
+                .Extract(item => item.Id)
+                .Execute(async id => {
+                    Interlocked.Increment(ref currentConcurrency);
+                    maxConcurrency = Math.Max(maxConcurrency, currentConcurrency);
+                    await Task.Delay(50);
+                    Interlocked.Decrement(ref currentConcurrency);
+                    return id;
+                })
+                .Apply((item, result) => item.Result = result)
+                .DegreeOfParallelism(2))
+        .Id("enricher")
+        .ToPipe();
     
     // Send 5 items
     for (var i = 1; i <= 5; i++)
-        await block.Send(new BlockItem<TestItem>(new TestItem { Id = i }));
-    await block.Complete();
+        await pipe.Send(new TestItem { Id = i });
+    pipe.Complete();
+    await pipe.Completion;
     
     Assert.That(maxConcurrency, Is.LessThanOrEqualTo(2));
     Assert.That(maxConcurrency, Is.GreaterThanOrEqualTo(1));
@@ -336,24 +346,46 @@ public async Task Should_respect_per_enrichment_parallelism()
 [Test]
 public async Task Should_expose_enrichment_counters()
 {
-    var parallel = new ParallelBuilder<TestItem>()
-        .Action<int, int>()
-            .Id("multiply")
-            .Extract(item => item.Id)
-            .Execute(async id => { await Task.Delay(1); return id * 2; })
-            .Apply((item, result) => item.Result = result)
-        .Build();
+    var processedCount = 0;
+    var executeStarted = new TaskCompletionSource();
     
-    var block = new ParallelBlock<TestItem>(parallel);
+    var pipe = Pipe<TestItem>
+        .Parallel(p => p
+            .Action<int, int>()
+                .Id("multiply")
+                .Extract(item => item.Id)
+                .Execute(async id => { 
+                    executeStarted.TrySetResult();
+                    await Task.Delay(100); // Keep it running
+                    return id * 2; 
+                })
+                .Apply((item, result) => {
+                    item.Result = result;
+                    Interlocked.Increment(ref processedCount);
+                }))
+        .Id("enricher")
+        .ToPipe();
     
-    await block.Send(new BlockItem<TestItem>(new TestItem { Id = 1 }));
-    await block.Send(new BlockItem<TestItem>(new TestItem { Id = 2 }));
-    await block.Complete();
+    // Send items but don't wait for completion
+    var sendTask1 = pipe.Send(new TestItem { Id = 1 });
+    var sendTask2 = pipe.Send(new TestItem { Id = 2 });
     
-    var counter = block.GetEnrichmentCounter("multiply");
-    Assert.That(counter.InputCount, Is.EqualTo(0));
-    Assert.That(counter.OutputCount, Is.EqualTo(2));
-    Assert.That(counter.WorkingCount, Is.EqualTo(0));
+    // Wait for execution to start
+    await executeStarted.Task;
+    await Task.Delay(10); // Let counters update
+    
+    var parallelBlock = (ParallelBlock<TestItem>)pipe.Block;
+    var counter = parallelBlock.GetEnrichmentCounter("multiply");
+    Assert.That(counter.InputCount, Is.EqualTo(0)); // Items moved to working
+    Assert.That(counter.WorkingCount, Is.GreaterThan(0)); // Items being processed
+    
+    // Complete and verify final state
+    await Task.WhenAll(sendTask1, sendTask2);
+    pipe.Complete();
+    await pipe.Completion;
+    
+    Assert.That(processedCount, Is.EqualTo(2));
+    Assert.That(counter.WorkingCount, Is.EqualTo(0)); // All completed
 }
 ```
 
@@ -362,47 +394,7 @@ public async Task Should_expose_enrichment_counters()
 - Expose GetEnrichmentCounter method
 - Return IItemCounter from child blocks
 
-### Increment 9: Integration with Pipe API
-**Outcome**: Wire ParallelBlock through Pipe.Parallel() API
-
-**Test First**:
-```csharp
-[Test]
-public async Task Should_integrate_with_pipe_api()
-{
-    var results = new List<TestItem>();
-    
-    var pipe = Pipe<TestItem>
-        .Parallel(p => p
-            .Action<int, int>()
-                .Extract(item => item.Id)
-                .Execute(async id => { await Task.Delay(1); return id * 10; })
-                .Apply((item, result) => item.EnrichedId = result))
-        .Id("enricher")
-        .ToPipe();
-    
-    var collector = PipeMock<TestItem>.Create("collector", item => results.Add(item));
-    pipe.LinkNext(collector);
-    
-    await pipe.Send(new TestItem { Id = 5 });
-    pipe.Complete();
-    await pipe.Completion;
-    
-    Assert.That(results.Count, Is.EqualTo(1));
-    Assert.That(results[0].EnrichedId, Is.EqualTo(50));
-    
-    // Verify we can cast to ParallelBlock
-    var parallelBlock = pipe.Block as ParallelBlock<TestItem>;
-    Assert.That(parallelBlock, Is.Not.Null);
-}
-```
-
-**Implementation**:
-- Add Parallel method to Pipe<T> class
-- Return builder that creates ParallelBlock
-- Ensure proper integration with PipeOptions
-
-### Increment 10: Cancellation Token Support
+### Increment 9: Cancellation Token Support
 **Outcome**: Support per-enrichment cancellation tokens
 
 **Test First**:
@@ -415,35 +407,35 @@ public async Task Should_support_per_enrichment_cancellation()
     var executed1 = false;
     var executed2 = false;
     
-    var parallel = new ParallelBuilder<TestItem>()
-        .Action<int, int>()
-            .Extract(_ => 1)
-            .Execute(async _ => {
-                await Task.Delay(100, cts1.Token);
-                executed1 = true;
-                return 1;
-            })
-            .Apply((_, __) => { })
-            .CancellationToken(cts1.Token)
-        .Action<int, int>()
-            .Extract(_ => 2)
-            .Execute(async _ => {
-                await Task.Delay(100, cts2.Token);
-                executed2 = true;
-                return 2;
-            })
-            .Apply((_, __) => { })
-            .CancellationToken(cts2.Token)
-        .Build();
-    
-    var block = new ParallelBlock<TestItem>(parallel);
+    var pipe = Pipe<TestItem>
+        .Parallel(p => p
+            .Action<int, int>()
+                .Extract(_ => 1)
+                .Execute(async _ => {
+                    await Task.Delay(100, cts1.Token);
+                    executed1 = true;
+                    return 1;
+                })
+                .Apply((_, __) => { })
+                .CancellationToken(cts1.Token)
+            .Action<int, int>()
+                .Extract(_ => 2)
+                .Execute(async _ => {
+                    await Task.Delay(100, cts2.Token);
+                    executed2 = true;
+                    return 2;
+                })
+                .Apply((_, __) => { })
+                .CancellationToken(cts2.Token))
+        .Id("enricher")
+        .ToPipe();
     
     // Cancel first enrichment
     cts1.Cancel();
     
     // Should throw because one enrichment was cancelled
     Assert.ThrowsAsync<OperationCanceledException>(async () => {
-        await block.Send(new BlockItem<TestItem>(new TestItem()));
+        await pipe.Send(new TestItem());
     });
     
     Assert.That(executed1, Is.False);
@@ -459,12 +451,13 @@ public async Task Should_support_per_enrichment_cancellation()
 ## Testing Strategy
 
 ### Unit Tests
-- Each increment has focused unit tests
+- Each increment has focused unit tests through Pipe.Parallel API
 - Test both success and error paths
 - Use minimal test items/mocks
+- Cast to ParallelBlock only when accessing advanced APIs (counters)
 
 ### Integration Tests
-- End-to-end pipeline with ParallelBlock
+- All tests are effectively integration tests using public API
 - Performance characteristics (parallelism)
 - Error propagation through pipeline
 
@@ -489,11 +482,6 @@ Simpipe.Net/
     └── Pipe.cs (add Parallel method)
 
 Simpipe.Net.Tests/
-├── Blocks/
-│   ├── ParallelBlockFixture.cs
-│   ├── ParallelBuilderFixture.cs
-│   ├── ActionEnrichmentBuilderFixture.cs
-│   └── BatchEnrichmentBuilderFixture.cs
 └── Pipes/
-    └── ParallelPipeFixture.cs (integration tests)
+    └── ParallelPipeFixture.cs (all tests via public API)
 ```
