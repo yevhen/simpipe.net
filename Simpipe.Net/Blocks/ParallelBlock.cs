@@ -5,22 +5,25 @@ namespace Simpipe.Blocks;
 public class ParallelBlock<T> : IActionBlock<T>
 {
     readonly ActionBlock<T> input;
-    readonly List<IActionBlock<T>> blocks;
+    readonly Dictionary<string, ActionBlock<T>> blockMap;
+    readonly ActionBlock<T>[] blocks;
     readonly CompletionTrackingExecutor<T> completionTracker;
+    readonly ParallelBlockCountingExecutor<T> blockCounters = new();
 
     public ParallelBlock(
         int capacity,
         int blockCount,
         IActionBlockExecutor<T> executor,
         Func<T, Task> done,
-        Func<IActionBlockExecutor<T>, List<IActionBlock<T>>> blocksFactory,
+        Func<IActionBlockExecutor<T>, Dictionary<string, ActionBlock<T>>> blocksFactory,
         CancellationToken cancellationToken = default)
     {
-        completionTracker = new CompletionTrackingExecutor<T>(blockCount, done, DefaultExecutor<T>.Instance);
+        completionTracker = new CompletionTrackingExecutor<T>(blockCount, done, blockCounters);
 
-        blocks = blocksFactory(completionTracker);
-        if (blocks.Count != blockCount)
-            throw new ArgumentException($"Expected {blockCount} blocks, but got {blocks.Count}.");
+        blockMap = blocksFactory(completionTracker);
+        blocks = blockMap.Values.ToArray();
+
+        blockCounters.SetBlocks(blocks);
 
         input = new ActionBlock<T>(
             capacity: capacity,
@@ -29,6 +32,8 @@ public class ParallelBlock<T> : IActionBlock<T>
             executor: executor,
             cancellationToken: cancellationToken);
     }
+
+    public IItemCounter GetCounter(string blockId) => blockCounters.GetCounter(blockMap[blockId]);
 
     public async Task Send(BlockItem<T> item) => await input.Send(item);
 
@@ -83,4 +88,26 @@ internal class CompletionTrackingExecutor<T> : IActionBlockExecutor<T>
     }
 
     public Task Complete() => completion.Complete();
+}
+
+internal class ParallelBlockCountingExecutor<T> : IActionBlockExecutor<T>
+{
+    readonly Dictionary<IActionBlock<T>, CountingExecutor<T>> blockCounters = new();
+
+    public void SetBlocks(IEnumerable<IActionBlock<T>> blocks)
+    {
+        foreach (var block in blocks)
+            blockCounters[block] = new CountingExecutor<T>();
+    }
+
+    public IItemCounter GetCounter(IActionBlock<T> block) => blockCounters[block];
+
+    public async Task ExecuteSend(IActionBlock<T> block, BlockItem<T> item, BlockItemAction<T> send) =>
+        await blockCounters[block].ExecuteSend(block, item, send);
+
+    public async Task ExecuteAction(IActionBlock<T> block, BlockItem<T> item, BlockItemAction<T> action) =>
+        await blockCounters[block].ExecuteAction(block, item, action);
+
+    public async Task ExecuteDone(IActionBlock<T> block, BlockItem<T> item, BlockItemAction<T> done) =>
+        await blockCounters[block].ExecuteDone(block, item, done);
 }

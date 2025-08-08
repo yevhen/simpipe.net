@@ -25,9 +25,9 @@ public class ParallelBlockFixture
                 doneItems.Add(item);
                 return Task.CompletedTask;
             },
-            blocksFactory: executor =>
-            [
-                new ActionBlock<TestItem>(
+            executor => new()
+            {
+                ["b1"] = new ActionBlock<TestItem>(
                     capacity: 1,
                     parallelism: 1,
                     BlockItemAction<TestItem>.Async(async i =>
@@ -38,12 +38,12 @@ public class ParallelBlockFixture
                     }),
                     executor: executor),
 
-                new ActionBlock<TestItem>(
+                ["b2"] = new ActionBlock<TestItem>(
                     capacity: 1,
                     parallelism: 1,
                     BlockItemAction<TestItem>.Sync(i => i.Block2Value = "2"),
                     executor: executor)
-            ]);
+            });
 
         await parallelBlock.Send(item);
         await Task.Delay(100);
@@ -57,5 +57,47 @@ public class ParallelBlockFixture
 
         Assert.That(doneItems, Has.Count.EqualTo(1));
         Assert.That(doneItems[0], Is.SameAs(item));
+    }
+
+    [Test]
+    public async Task Inner_blocks_counters()
+    {
+        var item = new TestItem();
+        var tcs = new TaskCompletionSource();
+
+        var parallelBlock = new ParallelBlock<TestItem>(
+            capacity: 1,
+            blockCount: 2,
+            executor: DefaultExecutor<TestItem>.Instance,
+            done: _ => Task.CompletedTask,
+            executor => new()
+            {
+                ["b1"] = new ActionBlock<TestItem>(
+                    capacity: 1,
+                    parallelism: 1,
+                    BlockItemAction<TestItem>.Async(_ => tcs.Task),
+                    executor: executor),
+
+                ["b2"] = new ActionBlock<TestItem>(
+                    capacity: 1,
+                    parallelism: 1,
+                    BlockItemAction<TestItem>.Async(_ => tcs.Task),
+                    executor: executor)
+            });
+
+        Assert.That(parallelBlock.GetCounter("b1").WorkingCount, Is.EqualTo(0));
+        Assert.That(parallelBlock.GetCounter("b2").WorkingCount, Is.EqualTo(0));
+
+        await parallelBlock.Send(item);
+        await Task.Delay(10);
+
+        Assert.That(parallelBlock.GetCounter("b1").WorkingCount, Is.EqualTo(1));
+        Assert.That(parallelBlock.GetCounter("b2").WorkingCount, Is.EqualTo(1));
+
+        tcs.SetResult();
+        await Task.Delay(10);
+
+        Assert.That(parallelBlock.GetCounter("b1").WorkingCount, Is.EqualTo(0));
+        Assert.That(parallelBlock.GetCounter("b2").WorkingCount, Is.EqualTo(0));
     }
 }
