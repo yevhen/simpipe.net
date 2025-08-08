@@ -3,16 +3,16 @@
 [![.NET](https://img.shields.io/badge/.NET-9.0-512BD4)](https://dotnet.microsoft.com/download)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-A high-performance, composable pipeline pattern library for .NET using TPL Dataflow. Build robust data processing pipelines with ease.
+A high-performance, composable pipeline pattern library for .NET using System.Threading.Channels. Build robust data processing pipelines with ease.
 
 ## Overview
 
-Simpipe.Net provides a fluent API for constructing data processing pipelines on top of TPL Dataflow. It simplifies complex data flow scenarios while maintaining the performance and reliability of the underlying dataflow architecture.
+Simpipe.Net provides a fluent API for constructing data processing pipelines using System.Threading.Channels. It simplifies complex data flow scenarios while maintaining high performance and reliability.
 
 ### Key Benefits
 
 - **Composable**: Chain pipes together to create complex processing workflows
-- **Concurrent**: Built on TPL Dataflow for efficient parallel processing
+- **Concurrent**: Built with System.Threading.Channels for efficient parallel processing
 - **Back-pressure Handling**: Automatic flow control prevents memory overload
 - **Type-Safe**: Full generic type support with compile-time safety
 - **Testable**: Clear separation of concerns makes testing straightforward
@@ -24,7 +24,7 @@ Use Simpipe.Net when you need:
 - ETL (Extract, Transform, Load) pipelines
 - Real-time data processing with batching capabilities
 - Complex routing logic between processing stages
-- Integration with existing TPL Dataflow blocks
+- Work-in-progress limiting
 
 ## Features
 
@@ -34,7 +34,7 @@ Use Simpipe.Net when you need:
 - ✅ Automatic completion propagation
 - ✅ Back-pressure handling via bounded capacity
 - ✅ Conditional routing between pipes
-- ✅ Integration with existing TPL Dataflow blocks
+- ✅ Work-in-progress limiting
 - ✅ Performance monitoring (input/output/working counts)
 - ✅ Cancellation token support
 
@@ -49,23 +49,22 @@ dotnet add package Simpipe.Net
 Here's a simple example that demonstrates basic pipeline construction:
 
 ```csharp
-using Youscan.Core.Pipes;
-
-// Create a pipeline builder
-var builder = new PipeBuilder<string>();
+using Simpipe.Pipes;
 
 // Create a pipeline
 var pipeline = new Pipeline<string>();
 
 // Add an action pipe that processes each item
-var processPipe = builder
+var processPipe = Pipe<string>
     .Action(item => Console.WriteLine($"Processing: {item}"))
+    .Id("processor")
     .ToPipe();
 pipeline.Add(processPipe);
 
 // Add a batch pipe that groups items
-var batchPipe = builder
+var batchPipe = Pipe<string>
     .Batch(5, items => Console.WriteLine($"Batch of {items.Length} items"))
+    .Id("batcher")
     .ToPipe();
 pipeline.Add(batchPipe);
 
@@ -103,7 +102,7 @@ A Pipeline is a container that:
 Pipes support conditional routing:
 - Route items based on predicates
 - Link to multiple downstream pipes
-- Integrate with TPL Dataflow blocks
+- Work-in-progress flow control
 
 ### Completion
 
@@ -143,22 +142,22 @@ var pipe = new PipeBuilder<LogEntry>()
     .ToPipe();
 ```
 
-### BlockPipeAdapter
+### PipelineLimiter
 
-Wraps existing TPL Dataflow blocks as pipes.
+Limits work-in-progress items for flow control.
 
 ```csharp
-var transformBlock = new TransformBlock<int, string>(
-    n => n.ToString(),
-    new ExecutionDataflowBlockOptions { 
-        MaxDegreeOfParallelism = 2 
-    });
+var limiter = new PipelineLimiter<Order>(maxWork: 10, async order => {
+    await ProcessOrder(order);
+    // Signal completion
+    await limiter.TrackDone(order);
+});
 
-var adapter = new BlockPipeAdapter<string>(
-    new PipeOptions<string>().Id("transformer"),
-    transformBlock);
+// Send items with automatic back-pressure
+await limiter.Send(order);
 
-pipeline.Add(adapter);
+// Complete processing
+await limiter.Complete();
 ```
 
 ## Advanced Usage
@@ -175,18 +174,19 @@ sourcePipe.LinkTo(item =>
     item.Priority > 5 ? highPriorityPipe : normalPipe);
 ```
 
-### Integration with TPL Dataflow
+### Performance Monitoring
 
-Seamlessly integrate with existing dataflow blocks:
+Track pipeline performance using the ItemCounter interface:
 
 ```csharp
-// Link pipe to dataflow block
-var transformBlock = new TransformBlock<Data, Result>(Transform);
-pipe.LinkTo(transformBlock);
+var pipe = Pipe<Data>
+    .Action(ProcessData)
+    .Id("processor")
+    .ToPipe();
 
-// Link dataflow block to pipe
-var targetPipe = CreateTargetPipe();
-transformBlock.LinkTo(targetPipe.Target);
+// Monitor performance
+var counter = pipe.ItemCounter;
+Console.WriteLine($"Input: {counter.InputCount}, Working: {counter.WorkingCount}, Output: {counter.OutputCount}");
 ```
 
 ### Performance Monitoring
@@ -212,10 +212,11 @@ Support graceful cancellation:
 ```csharp
 var cts = new CancellationTokenSource();
 
-var pipe = new PipeBuilder<Item>()
+var pipe = Pipe<Item>
     .Action(async item => {
         await ProcessItem(item);
     })
+    .Id("item-processor")
     .CancellationToken(cts.Token)
     .ToPipe();
 
@@ -267,7 +268,8 @@ All pipes support these configuration options:
 
 4. **Monitor Performance**: Track pipeline metrics for optimization
    ```csharp
-   if (pipe.InputCount > pipe.OutputCount * 2)
+   var counter = pipe.ItemCounter;
+   if (counter.InputCount > counter.OutputCount * 2)
        Console.WriteLine("Potential bottleneck detected");
    ```
 
@@ -299,25 +301,28 @@ All pipes support these configuration options:
 var pipeline = new Pipeline<DataRecord>();
 
 // Parse stage
-pipeline.Add(new PipeBuilder<DataRecord>()
+pipeline.Add(Pipe<DataRecord>
     .Action(record => record.Parse())
+    .Id("parser")
     .DegreeOfParallelism(4)
     .ToPipe());
 
 // Validate stage
-pipeline.Add(new PipeBuilder<DataRecord>()
+pipeline.Add(Pipe<DataRecord>
     .Action(record => {
         if (!record.IsValid)
             throw new ValidationException($"Invalid record: {record.Id}");
     })
+    .Id("validator")
     .Filter(record => record.RequiresValidation)
     .ToPipe());
 
 // Batch for database insert
-pipeline.Add(new PipeBuilder<DataRecord>()
+pipeline.Add(Pipe<DataRecord>
     .Batch(1000, async records => {
         await BulkInsertToDatabase(records);
     })
+    .Id("database-writer")
     .BatchTriggerPeriod(TimeSpan.FromSeconds(10))
     .ToPipe());
 ```
@@ -328,8 +333,9 @@ pipeline.Add(new PipeBuilder<DataRecord>()
 var pipeline = new Pipeline<StreamEvent>();
 
 // Filter stage
-var filterPipe = new PipeBuilder<StreamEvent>()
+var filterPipe = Pipe<StreamEvent>
     .Action(_ => { })
+    .Id("filter")
     .Filter(evt => evt.Severity >= Severity.Warning)
     .ToPipe();
 
