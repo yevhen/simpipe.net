@@ -37,10 +37,12 @@ public class PipelineLimiter<T>
         }
     }
 
-    async Task ProcessDone()
+    Task ProcessDone()
     {
         if (done.Reader.TryRead(out _))
             wip--;
+
+        return Task.CompletedTask;
     }
 
     public async Task Send(T item) => await input.Writer.WriteAsync(item);
