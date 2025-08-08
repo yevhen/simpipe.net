@@ -10,18 +10,20 @@ public class ParallelBlockFixture
         public string Block2Value;
     }
 
-    class CompletionTrackingExecutor<T> : DefaultExecutor<T>
+    class CompletionTrackingExecutor<T> : IActionBlockExecutor<T>
         where T : notnull
     {
         readonly ActionBlock<T> completion;
         readonly Dictionary<T, int> completed = new();
         readonly int count;
         readonly Func<T, Task> done;
+        readonly IActionBlockExecutor<T> executor;
 
-        public CompletionTrackingExecutor(int count, Func<T, Task> done)
+        public CompletionTrackingExecutor(int count, Func<T, Task> done, IActionBlockExecutor<T> executor)
         {
             this.count = count;
             this.done = done;
+            this.executor = executor;
 
             completion = new ActionBlock<T>(capacity: 1, parallelism: 1, BlockItemAction<T>.Async(TrackDone));
         }
@@ -37,9 +39,15 @@ public class ParallelBlockFixture
                 await done(item);
         }
 
-        public override async Task ExecuteDone(IActionBlock<T> block, BlockItem<T> item, BlockItemAction<T> done)
+        public Task ExecuteSend(IActionBlock<T> block, BlockItem<T> item, BlockItemAction<T> send) =>
+             executor.ExecuteSend(block, item, send);
+
+        public Task ExecuteAction(IActionBlock<T> block, BlockItem<T> item, BlockItemAction<T> action) =>
+            executor.ExecuteAction(block, item, action);
+
+        public async Task ExecuteDone(IActionBlock<T> block, BlockItem<T> item, BlockItemAction<T> done)
         {
-            await base.ExecuteDone(block, item, done);
+            await executor.ExecuteDone(block, item, done);
             await completion.Send(item);
         }
     }
@@ -57,7 +65,8 @@ public class ParallelBlockFixture
             {
                 doneItems.Add(x);
                 return Task.CompletedTask;
-            });
+            },
+            DefaultExecutor<TestItem>.Instance);
 
         var tcs1 = new TaskCompletionSource();
         var tcs2 = new TaskCompletionSource();

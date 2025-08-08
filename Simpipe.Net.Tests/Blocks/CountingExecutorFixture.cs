@@ -3,6 +3,7 @@ namespace Simpipe.Blocks;
 public class CountingExecutorFixture
 {
     static readonly BlockItem<int> Item = new([42, 50, 100]);
+    static IActionBlock<int> block;
 
     [Test]
     public void Input_count_is_zero_on_creation()
@@ -16,7 +17,7 @@ public class CountingExecutorFixture
     {
         var executor = new CountingExecutor<int>();
 
-        await executor.ExecuteSend(Item, BlockItemAction<int>.Noop);
+        await executor.ExecuteSend(block, Item, BlockItemAction<int>.Noop);
 
         Assert.That(executor.InputCount, Is.EqualTo(3));
     }
@@ -26,8 +27,8 @@ public class CountingExecutorFixture
     {
         var executor = new CountingExecutor<int>();
 
-        await executor.ExecuteSend(Item, BlockItemAction<int>.Noop);
-        await executor.ExecuteAction(Item, BlockItemAction<int>.Noop);
+        await executor.ExecuteSend(block, Item, BlockItemAction<int>.Noop);
+        await executor.ExecuteAction(block, Item, BlockItemAction<int>.Noop);
 
         Assert.That(executor.InputCount, Is.EqualTo(0));
     }
@@ -45,7 +46,8 @@ public class CountingExecutorFixture
         var executor = new CountingExecutor<int>();
 
         var workingCount = 0;
-        await executor.ExecuteAction(Item, BlockItemAction<int>.BatchSync(_ => workingCount = executor.WorkingCount));
+        await executor.ExecuteAction(block, Item,
+            BlockItemAction<int>.BatchSync(_ => workingCount = executor.WorkingCount));
 
         Assert.That(workingCount, Is.EqualTo(3));
     }
@@ -55,7 +57,7 @@ public class CountingExecutorFixture
     {
         var executor = new CountingExecutor<int>();
 
-        await executor.ExecuteAction(Item, BlockItemAction<int>.Noop);
+        await executor.ExecuteAction(block, Item, BlockItemAction<int>.Noop);
 
         Assert.That(executor.WorkingCount, Is.EqualTo(0));
     }
@@ -73,7 +75,8 @@ public class CountingExecutorFixture
         var executor = new CountingExecutor<int>();
 
         var outputCount = 0;
-        await executor.ExecuteDone(Item, BlockItemAction<int>.BatchSync(_ => outputCount = executor.OutputCount));
+        await executor.ExecuteDone(block, Item,
+            BlockItemAction<int>.BatchSync(_ => outputCount = executor.OutputCount));
 
         Assert.That(outputCount, Is.EqualTo(3));
     }
@@ -83,7 +86,7 @@ public class CountingExecutorFixture
     {
         var executor = new CountingExecutor<int>();
 
-        await executor.ExecuteDone(Item, BlockItemAction<int>.Noop);
+        await executor.ExecuteDone(block, Item, BlockItemAction<int>.Noop);
 
         Assert.That(executor.OutputCount, Is.EqualTo(0));
     }
