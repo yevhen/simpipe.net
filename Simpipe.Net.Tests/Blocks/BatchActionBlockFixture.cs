@@ -30,4 +30,36 @@ public class BatchActionBlockFixture
         Assert.That(batch1, Is.EqualTo(new[] {"i1", "i2"}));
         Assert.That(batch2, Is.EqualTo(new[] {"i3", "i4"}));
     }
+
+    [Test]
+    public async Task BatchActionBlock_StopsProcessingAfterExceptionInBatch()
+    {
+        var processedBatches = new List<string[]>();
+        
+        var batchActionBlock = new BatchActionBlock<string>(
+            capacity: 10,
+            batchSize: 2,
+            batchFlushInterval: TimeSpan.FromMinutes(1),
+            parallelism: 1,
+            action: BlockItemAction<string>.BatchSync(batch =>
+            {
+                if (batch.Contains("error"))
+                    throw new ArgumentException("Test exception");
+                processedBatches.Add(batch);
+            }),
+            done: BlockItemAction<string>.BatchSync(_ => { }));
+
+        await batchActionBlock.Send("item1");
+        await batchActionBlock.Send("item2");
+        await batchActionBlock.Send("error");
+        await batchActionBlock.Send("item4");
+
+        Assert.ThrowsAsync<ArgumentException>(() => batchActionBlock.Complete());
+        
+        Assert.That(processedBatches.Count, Is.EqualTo(1), "Only the first batch should be processed before the exception");
+        Assert.That(processedBatches[0], Is.EqualTo(new[] {"item1", "item2"}));
+
+        Assert.That(processedBatches.Any(b => b.Contains("error")), Is.False,
+            "The second batch containing \"error\" should not be in the processed list");
+    }
 }

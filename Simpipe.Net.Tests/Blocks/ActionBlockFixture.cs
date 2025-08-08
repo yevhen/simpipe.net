@@ -49,4 +49,31 @@ public class ActionBlockFixture
         Assert.That(maxConcurrency, Is.GreaterThanOrEqualTo(2));
         Assert.That(maxConcurrency, Is.LessThanOrEqualTo(3));
     }
+
+    [Test]
+    public async Task ActionBlock_StopsProcessingAfterException()
+    {
+        var processedItems = new List<int>();
+        
+        var block = new ActionBlock<int>(
+            capacity: 10,
+            parallelism: 1,
+            action: BlockItemAction<int>.Sync(item =>
+            {
+                if (item == 2)
+                    throw new ArgumentException("Test exception");
+                processedItems.Add(item);
+            }),
+            done: BlockItemAction<int>.Sync(_ => { }));
+
+        await block.Send(1);
+        await block.Send(2);
+        await block.Send(3);
+
+        Assert.ThrowsAsync<ArgumentException>(() => block.Complete());
+        
+        Assert.That(processedItems, Contains.Item(1), "Only item 1 should be processed before the exception occurs");
+        Assert.That(processedItems, Does.Not.Contain(2));
+        Assert.That(processedItems, Does.Not.Contain(3));
+    }
 }
