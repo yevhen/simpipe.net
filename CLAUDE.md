@@ -39,19 +39,19 @@ dotnet clean         # Clean build artifacts
 
 ## Architecture Overview
 
-Simpipe.Net is a .NET 9.0 library implementing a pipeline pattern using TPL Dataflow. The library provides composable pipe components for building data processing pipelines.
+Simpipe.Net is a .NET 9.0 library implementing a pipeline pattern using System.Threading.Channels. The library provides composable pipe components for building data processing pipelines.
 
 ### Core Components
 
-- **IPipe<T>** (Pipe.cs:5-24): Base interface for all pipe components
+- **Pipe<T>** (Pipe.cs:5+): Concrete pipe class providing core pipe functionality
   - Supports routing through `LinkTo()` methods
   - Provides completion tracking and item counting
-  - Uses TPL Dataflow's `ITargetBlock<T>` as underlying implementation
+  - Uses System.Threading.Channels-based IActionBlock<T> as underlying implementation
 
-- **Pipe<T>** (Pipe.cs:40+): Abstract base implementation providing common pipe functionality
-  - Handles action execution with optional filtering
-  - Manages input/output/working counts
-  - Supports completion propagation
+- **IActionBlock<T>** (ActionBlock.cs): Channel-based block interface for action execution
+  - Handles concurrent item processing with configurable parallelism
+  - Provides Send() and Complete() operations
+  - Built on System.Threading.Channels for efficient concurrent processing
 
 - **Pipeline<T>** (Pipeline.cs): Container for managing a sequence of connected pipes
   - Maintains pipes by ID and in order
@@ -62,16 +62,13 @@ Simpipe.Net is a .NET 9.0 library implementing a pipeline pattern using TPL Data
 
 - **ActionPipe<T>**: Executes an action for each item
 - **BatchPipe<T>**: Groups items into batches before processing
-- **DynamicBatchPipe<T>**: Batches items with dynamic intervals
-- **GroupPipe<T>**: Groups items by key
-- **BlockPipeAdapter<T>**: Adapts TPL Dataflow blocks to pipe interface
-- **RoutingBlock<T>**: Provides conditional routing between pipes
+- **PipelineLimiter<T>**: Limits work-in-progress items for flow control
 
 ### Key Design Patterns
 
 1. **Fluent Builder Pattern**: `PipeBuilder<T>` provides fluent API for pipe creation
 2. **Decorator Pattern**: Pipes can be wrapped and composed
-3. **TPL Dataflow Integration**: All pipes wrap dataflow blocks for concurrent execution
+3. **Channel Integration**: All pipes use System.Threading.Channels for concurrent execution
 4. **Completion Propagation**: Automatic completion handling through the pipeline
 
 # CRITICAL: NAMING IS EVERYTHING
@@ -209,7 +206,7 @@ Any message containing the emoji pattern **👧🏻💬** followed by text shoul
 **Test what matters, skip what doesn't**
 **IMPORTANT**: Read `@docs/testing.md` for detailed testing guidelines.
 
-Tests use **xUnit** and should be named `*Tests.cs`. All tests are located in a dedicated test project (e.g., `QualityMon.Tests`) which mirrors the source project's namespaces.
+Tests use **NUnit 3.14** and should be named `*Fixture.cs`. All tests are located in a dedicated test project (e.g., `Simpipe.Net.Tests`) which mirrors the source project's namespaces.
 
 **Keep test methods focused and short.** Use these strategies to manage test complexity:
 
@@ -245,8 +242,8 @@ result.Should().BeEquivalentTo(expected);
 
 **Test Organization**:
 
-- **Use test fixtures** (e.g., `IClassFixture<T>`) to create/share objects needed in multiple test cases.
-- **Use `[Theory]` and `[InlineData]`** when multiple test cases have similar structures but different inputs.
+- **Use test fixtures** with `[TestFixture]` attribute to create/share objects needed in multiple test cases.
+- **Use `[TestCase]` and `[TestCaseSource]`** when multiple test cases have similar structures but different inputs.
 - **Split large test files** into multiple focused files when refactoring can't reduce complexity.
 - **Group tests meaningfully** by the functionality being tested, often in a class named after the class under test.
 
@@ -256,7 +253,7 @@ result.Should().BeEquivalentTo(expected);
 - Mock implementations in PipeMock.cs for testing
 - Integration tests in IntegrationFixture.cs
 
-Note: The namespace `Youscan.Core.Pipes` is used throughout the codebase instead of `Simpipe.Net`.
+Note: The namespaces `Simpipe.Pipes` and `Simpipe.Blocks` are used throughout the codebase.
 
 ## Quality Issue Resolution Strategy
 
@@ -373,7 +370,7 @@ async\method: Suffix with `Async` =\> `GetDataAsync()`
 ### What to Log:
 
 - **Gotchas**: Unexpected behaviors, edge cases, tricky bugs (e.g., `ConfigureAwait(false)` issues).
-- **Judgement calls**: Architecture decisions, trade-offs made (e.g., choosing xUnit over NUnit).
+- **Judgement calls**: Architecture decisions, trade-offs made (e.g., choosing NUnit over xUnit, System.Threading.Channels over TPL Dataflow).
 - **File discoveries**: Important files found, solution/project structure insights.
 - **Problems solved**: Non-obvious solutions, workarounds (e.g., a clever LINQ query).
 - **Plan deviations**: Things not anticipated by the original plan.
