@@ -6,7 +6,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <IsPackable>false</IsPackable>
-        <RootNamespace>Simpipe.Tests</RootNamespace>
+        <RootNamespace>Simpipe</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>

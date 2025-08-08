@@ -1,6 +1,4 @@
-﻿using Simpipe.Blocks;
-
-namespace Simpipe.Tests.Pipes;
+﻿namespace Simpipe.Blocks;
 
 [TestFixture]
 public class BlockItemFixture

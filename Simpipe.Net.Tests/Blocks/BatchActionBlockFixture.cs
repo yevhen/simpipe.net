@@ -1,7 +1,6 @@
 using System.Threading.Channels;
-using Simpipe.Blocks;
 
-namespace Simpipe.Tests.Blocks;
+namespace Simpipe.Blocks;
 
 [TestFixture]
 public class BatchActionBlockFixture

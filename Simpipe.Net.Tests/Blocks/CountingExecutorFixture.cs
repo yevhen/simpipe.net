@@ -1,6 +1,4 @@
-using Simpipe.Blocks;
-
-namespace Simpipe.Tests.Blocks;
+namespace Simpipe.Blocks;
 
 public class CountingExecutorFixture
 {

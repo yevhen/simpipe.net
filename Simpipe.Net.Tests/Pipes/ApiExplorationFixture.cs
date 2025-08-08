@@ -1,4 +1,4 @@
-namespace Simpipe.Tests.Pipes;
+namespace Simpipe.Pipes;
 
 [TestFixture]
 public class ApiExplorationFixture

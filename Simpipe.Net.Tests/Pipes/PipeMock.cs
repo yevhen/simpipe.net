@@ -1,7 +1,6 @@
 using Simpipe.Blocks;
-using Simpipe.Pipes;
 
-namespace Simpipe.Tests.Pipes;
+namespace Simpipe.Pipes;
 
 public static class PipeMock<T>
 {
