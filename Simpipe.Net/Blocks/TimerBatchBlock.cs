@@ -1,6 +1,6 @@
 namespace Simpipe.Blocks;
 
-public class TimerBatchBlock<T>
+public class TimerBatchBlock<T> : IBlock
 {
     readonly BatchBlock<T> batchBlock;
     readonly PeriodicTimer flushTimer;
@@ -58,4 +58,8 @@ public class TimerBatchBlock<T>
         flushTimer.Dispose();
         await processor;
     }
+
+    public int InputCount => batchBlock.InputCount;
+    public int OutputCount => batchBlock.OutputCount;
+    public int WorkingCount => batchBlock.WorkingCount;
 }

@@ -2,7 +2,7 @@ using System.Threading.Channels;
 
 namespace Simpipe.Blocks;
 
-public interface IActionBlock<T>
+public interface IActionBlock<T> : IBlock
 {
     Task Send(BlockItem<T> item);
     Task Complete();
@@ -10,11 +10,11 @@ public interface IActionBlock<T>
 
 public class ActionBlock<T> : IActionBlock<T>
 {
+    readonly BlockMetrics<T> metrics = new();
     readonly Channel<BlockItem<T>> input;
     readonly BlockItemAction<T> send;
     readonly BlockItemAction<T> action;
     readonly BlockItemAction<T> done;
-    readonly IActionBlockExecutor<T> executor;
     readonly CancellationToken cancellationToken;
     readonly Task processor;
 
@@ -23,13 +23,11 @@ public class ActionBlock<T> : IActionBlock<T>
         int parallelism,
         BlockItemAction<T> action,
         BlockItemAction<T>? done = null,
-        IActionBlockExecutor<T>? executor = null,
         CancellationToken cancellationToken = default)
     {
         this.action = action;
         this.done = done ?? BlockItemAction<T>.Noop;
         this.cancellationToken = cancellationToken;
-        this.executor = executor ?? DefaultExecutor<T>.Instance;
 
         input = Channel.CreateBounded<BlockItem<T>>(capacity);
 
@@ -52,19 +50,43 @@ public class ActionBlock<T> : IActionBlock<T>
 
     async Task ProcessItem(BlockItem<T> item)
     {
-        await executor.ExecuteAction(this, item, action);
-
-        if (!cancellationToken.IsCancellationRequested)
-            await executor.ExecuteDone(this, item, done);
+        await Execute(item);
+        await Done(item);
     }
 
-    public async Task Send(BlockItem<T> item) => await executor.ExecuteSend(this, item, send);
+    async Task Execute(BlockItem<T> item)
+    {
+        metrics.TrackExecute(item);
+
+        await action.Execute(item);
+    }
+
+    async Task Done(BlockItem<T> item)
+    {
+        metrics.TrackDone(item);
+
+        if (!cancellationToken.IsCancellationRequested)
+            await done.Execute(item);
+
+        metrics.TrackDoneCompleted(item);
+    }
+
+    public async Task Send(BlockItem<T> item)
+    {
+        metrics.TrackSend(item);
+
+        await send.Execute(item);
+    }
 
     public async Task Complete()
     {
         input.Writer.Complete();
         await processor;
     }
+
+    public int InputCount => metrics.InputCount;
+    public int OutputCount => metrics.OutputCount;
+    public int WorkingCount => metrics.WorkingCount;
 }
 
 public static class ActionBlockExtensions

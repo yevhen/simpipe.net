@@ -15,9 +15,9 @@ public class Pipe<T>
     readonly Func<T, bool>? filter;
     readonly List<Func<T, Pipe<T>?>> routes = [];
     readonly TaskCompletionSource completion = new();
-    readonly CountingExecutor<T> executor = new();
+    readonly IActionBlock<T> block;
 
-    public Pipe(PipeOptions<T> options, Func<BlockItemAction<T>, IActionBlockExecutor<T>, IActionBlock<T>> blockFactory)
+    public Pipe(PipeOptions<T> options, Func<BlockItemAction<T>, IActionBlock<T>> blockFactory)
     {
         Id = options.Id;
         filter = options.Filter;
@@ -27,15 +27,14 @@ public class Pipe<T>
             routes.Add(route);
 
         var done = new BlockItemAction<T>(RouteItem);
-        Block = blockFactory(done, executor);
+        block = blockFactory(done);
     }
 
     public string Id { get; }
-    public IItemCounter ItemCounter => executor;
-    internal IActionBlock<T> Block { get; }
+    public IBlock Block => block;
 
     IActionBlock<T> Target(T item) => FilterMatches(item)
-        ? Block
+        ? block
         : RouteTarget(item);
 
     async Task RouteItem(BlockItem<T> item) => await item.Apply(RouteItem);
@@ -89,7 +88,7 @@ public class Pipe<T>
     public void LinkTo(Func<T, Pipe<T>?> route) => routes.Add(route);
     public void LinkNext(Pipe<T>? next) => this.next = next;
 
-    Task BlockSend(T item) => Block.Send(item);
+    Task BlockSend(T item) => block.Send(item);
 
     void BlockComplete()
     {
@@ -97,7 +96,7 @@ public class Pipe<T>
         {
             try
             {
-                await Block.Complete();
+                await block.Complete();
                 completion.TrySetResult();
             }
             catch (Exception e)

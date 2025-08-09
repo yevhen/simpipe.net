@@ -24,7 +24,7 @@ public static class PipeMock<T>
         Create(new PipeOptions<T>("id", filter, route), BlockItemAction<T>.Sync(action));
 
     static Pipe<T> Create(PipeOptions<T> options, BlockItemAction<T> action) =>
-        new(options, (done, _) => new BlockMock<T>(action, done));
+        new(options, done => new BlockMock<T>(action, done));
 }
 
 public class BlockMock<T>(BlockItemAction<T> action, BlockItemAction<T> done) : IActionBlock<T>
