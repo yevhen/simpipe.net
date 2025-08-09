@@ -51,29 +51,30 @@ Here's a simple example that demonstrates basic pipeline construction:
 ```csharp
 using Simpipe.Pipes;
 
-// Create a pipeline
-var pipeline = new Pipeline<string>();
+// Create a pipeline for tweet processing
+var pipeline = new Pipeline<Tweet>();
 
-// Add an action pipe that processes each item
-var processPipe = Pipe<string>
-    .Action(item => Console.WriteLine($"Processing: {item}"))
-    .Id("processor")
+// Add sentiment analysis pipe
+var sentimentPipe = Pipe<Tweet>
+    .Action(tweet => tweet.Sentiment = AnalyzeSentiment(tweet.Text))
+    .Id("sentiment-analyzer")
     .ToPipe();
-pipeline.Add(processPipe);
+pipeline.Add(sentimentPipe);
 
-// Add a batch pipe that groups items
-var batchPipe = Pipe<string>
-    .Batch(5, items => Console.WriteLine($"Batch of {items.Length} items"))
-    .Id("batcher")
+// Add batch pipe for Elasticsearch indexing
+var indexPipe = Pipe<Tweet>
+    .Batch(100, async tweets => {
+        await ElasticsearchClient.BulkIndex(tweets);
+        Console.WriteLine($"Indexed {tweets.Length} tweets");
+    })
+    .Id("elasticsearch-indexer")
     .ToPipe();
-pipeline.Add(batchPipe);
+pipeline.Add(indexPipe);
 
-// Send items through the pipeline
-await pipeline.Send("Item 1");
-await pipeline.Send("Item 2");
-await pipeline.Send("Item 3");
-await pipeline.Send("Item 4");
-await pipeline.Send("Item 5");
+// Process tweets
+await pipeline.Send(new Tweet { Text = "Love this product! #awesome" });
+await pipeline.Send(new Tweet { Text = "Great customer service @support" });
+// ... more tweets
 
 // Complete the pipeline
 await pipeline.Complete();
@@ -130,10 +131,11 @@ Simpipe.Net provides graceful shutdown:
 Executes an action for each item with configurable parallelism.
 
 ```csharp
-var pipe = Pipe<Order>
-    .Action(async order => {
-        await ProcessOrder(order);
-        Console.WriteLine($"Processed order {order.Id}");
+var pipe = Pipe<Tweet>
+    .Action(async tweet => {
+        await EnrichTweetMetadata(tweet);
+        tweet.ProcessedAt = DateTime.UtcNow;
+        Console.WriteLine($"Processed tweet from @{tweet.Author}");
     })
     .DegreeOfParallelism(4)
     .BoundedCapacity(100)
@@ -145,10 +147,10 @@ var pipe = Pipe<Order>
 Groups items into fixed-size batches with optional time-based triggers.
 
 ```csharp
-var pipe = Pipe<LogEntry>
-    .Batch(100, async entries => {
-        await BulkInsertLogs(entries);
-        Console.WriteLine($"Inserted {entries.Length} log entries");
+var pipe = Pipe<Tweet>
+    .Batch(500, async tweets => {
+        await ElasticsearchClient.BulkIndex(tweets);
+        Console.WriteLine($"Indexed {tweets.Length} tweets to Elasticsearch");
     })
     .BatchTriggerPeriod(TimeSpan.FromSeconds(5)) // Flush incomplete batches after 5 seconds
     .ToPipe();
@@ -156,19 +158,41 @@ var pipe = Pipe<LogEntry>
 
 ### PipelineLimiter
 
-Limits work-in-progress items for flow control.
+Controls total work-in-progress across a pipeline, providing back-pressure to producers.
 
 ```csharp
-var limiter = new PipelineLimiter<Order>(maxWork: 10, async order => {
-    await ProcessOrder(order);
-    // Signal completion
-    await limiter.TrackDone(order);
-});
+// Create pipeline with consistent capacity
+var pipeline = new Pipeline<Tweet>();
+pipeline.Add(Pipe<Tweet>
+    .Action(async tweet => await ValidateTweet(tweet))
+    .BoundedCapacity(50)  // Same as maxWork
+    .Id("validator")
+    .ToPipe());
+pipeline.Add(Pipe<Tweet>
+    .Action(async tweet => await EnrichTweet(tweet))
+    .BoundedCapacity(50)  // Same as maxWork
+    .Id("enricher")
+    .ToPipe());
 
-// Send items with automatic back-pressure
-await limiter.Send(order);
+// PipelineLimiter controls total work-in-progress
+var limiter = new PipelineLimiter<Tweet>(
+    maxWork: 50, // Only 50 tweets in flight
+    dispatch: async tweet => {
+        await pipeline.Send(tweet);
+        // Process through entire pipeline
+        await limiter.TrackDone(tweet);
+    });
 
-// Complete processing
+// Poll from SQS queue with automatic back-pressure
+while (!cancellationToken.IsCancellationRequested)
+{
+    var tweets = await SQSClient.ReceiveMessages(queueUrl);
+    foreach (var tweet in tweets)
+    {
+        await limiter.Send(tweet); // Blocks if 50 tweets in flight
+    }
+}
+
 await limiter.Complete();
 ```
 
@@ -177,33 +201,33 @@ await limiter.Complete();
 Execute multiple operations in parallel on the same item and wait for all to complete.
 
 ```csharp
-// Define parallel operations
-var validateBlock = Parallel<Order>
-    .Action(async order => await ValidateOrder(order))
-    .Id("validate")
-    .DegreeOfParallelism(2);
-
-var enrichBlock = Parallel<Order>
-    .Action(async order => await EnrichOrderData(order))
-    .Id("enrich")
+// Define parallel enrichment operations
+var sentimentBlock = Parallel<Tweet>
+    .Action(async tweet => tweet.Sentiment = await AnalyzeSentiment(tweet.Text))
+    .Id("sentiment")
     .DegreeOfParallelism(3);
 
-var notifyBlock = Parallel<Order>
-    .Action(async order => await NotifySubscribers(order))
-    .Id("notify");
+var languageBlock = Parallel<Tweet>
+    .Action(async tweet => tweet.Language = await DetectLanguage(tweet.Text))
+    .Id("language")
+    .DegreeOfParallelism(2);
+
+var entitiesBlock = Parallel<Tweet>
+    .Action(async tweet => tweet.Entities = ExtractEntities(tweet.Text))
+    .Id("entities");
 
 // Create fork-join pipe
-var forkPipe = Pipe<Order>
-    .Fork(validateBlock, enrichBlock, notifyBlock)
-    .Join(order => Console.WriteLine($"All parallel operations completed for order {order.Id}"))
-    .Id("fork-processor")
+var forkPipe = Pipe<Tweet>
+    .Fork(sentimentBlock, languageBlock, entitiesBlock)
+    .Join(tweet => Console.WriteLine($"Enriched tweet {tweet.Id}"))
+    .Id("enrichment-fork")
     .ToPipe();
 
-// Items are processed by all blocks in parallel
-await forkPipe.Send(order);
+// All three enrichments run in parallel
+await forkPipe.Send(tweet);
 
-// The next pipe receives the item only after ALL parallel blocks complete
-var nextPipe = Pipe<Order>.Action(SaveOrder).ToPipe();
+// The next pipe receives the tweet only after ALL parallel blocks complete
+var nextPipe = Pipe<Tweet>.Action(SaveToDatabase).ToPipe();
 forkPipe.LinkNext(nextPipe);
 ```
 
@@ -212,18 +236,18 @@ forkPipe.LinkNext(nextPipe);
 You can also use batch operations within fork-join:
 
 ```csharp
-var batchValidate = Parallel<Transaction>
-    .Batch(100, async transactions => await BulkValidate(transactions))
-    .Id("batch-validate")
+var batchAnalytics = Parallel<Tweet>
+    .Batch(100, async tweets => await BigQueryClient.InsertRows("analytics", tweets))
+    .Id("batch-analytics")
     .BatchTriggerPeriod(TimeSpan.FromSeconds(5));
 
-var batchAudit = Parallel<Transaction>
-    .Batch(50, async transactions => await AuditLog(transactions))
-    .Id("batch-audit");
+var batchMetrics = Parallel<Tweet>
+    .Batch(50, async tweets => await UpdateMetrics(tweets))
+    .Id("batch-metrics");
 
-var forkPipe = Pipe<Transaction>
-    .Fork(batchValidate, batchAudit)
-    .Id("transaction-processor")
+var forkPipe = Pipe<Tweet>
+    .Fork(batchAnalytics, batchMetrics)
+    .Id("analytics-processor")
     .ToPipe();
 ```
 
@@ -234,11 +258,18 @@ var forkPipe = Pipe<Transaction>
 Route items to different pipes based on conditions:
 
 ```csharp
-var highPriorityPipe = CreateHighPriorityPipe();
-var normalPipe = CreateNormalPipe();
+var englishPipe = CreateEnglishProcessingPipe();
+var spanishPipe = CreateSpanishProcessingPipe();
+var translationPipe = CreateTranslationPipe();
 
-sourcePipe.LinkTo(item => 
-    item.Priority > 5 ? highPriorityPipe : normalPipe);
+// Route tweets based on language
+sourcePipe.LinkTo(tweet => {
+    return tweet.Language switch {
+        "en" => englishPipe,
+        "es" => spanishPipe,
+        _ => translationPipe
+    };
+});
 ```
 
 ### Performance Monitoring
@@ -246,8 +277,8 @@ sourcePipe.LinkTo(item =>
 Track pipeline performance using the Block metrics:
 
 ```csharp
-var pipe = Pipe<Data>
-    .Action(ProcessData)
+var pipe = Pipe<Tweet>
+    .Action(ProcessTweet)
     .Id("processor")
     .ToPipe();
 
@@ -262,11 +293,11 @@ Support graceful cancellation:
 ```csharp
 var cts = new CancellationTokenSource();
 
-var pipe = Pipe<Item>
-    .Action(async item => {
-        await ProcessItem(item);
+var pipe = Pipe<Tweet>
+    .Action(async tweet => {
+        await ProcessTweet(tweet);
     })
-    .Id("item-processor")
+    .Id("tweet-processor")
     .CancellationToken(cts.Token)
     .ToPipe();
 
@@ -393,31 +424,34 @@ Parallel<T>.Batch(batchSize, action)
 ### Data Processing Pipeline
 
 ```csharp
-var pipeline = new Pipeline<DataRecord>();
+var pipeline = new Pipeline<Tweet>();
 
-// Parse stage
-pipeline.Add(Pipe<DataRecord>
-    .Action(record => record.Parse())
-    .Id("parser")
+// Content moderation stage
+pipeline.Add(Pipe<Tweet>
+    .Action(tweet => {
+        if (IsSpam(tweet) || HasProfanity(tweet))
+            tweet.Status = TweetStatus.Blocked;
+    })
+    .Id("content-moderator")
     .DegreeOfParallelism(4)
     .ToPipe());
 
-// Validate stage
-pipeline.Add(Pipe<DataRecord>
-    .Action(record => {
-        if (!record.IsValid)
-            throw new ValidationException($"Invalid record: {record.Id}");
+// Enrichment stage (only for clean tweets)
+pipeline.Add(Pipe<Tweet>
+    .Action(async tweet => {
+        tweet.Sentiment = await AnalyzeSentiment(tweet.Text);
+        tweet.Entities = ExtractEntities(tweet.Text);
     })
-    .Id("validator")
-    .Filter(record => record.RequiresValidation)
+    .Id("enricher")
+    .Filter(tweet => tweet.Status != TweetStatus.Blocked)
     .ToPipe());
 
-// Batch for database insert
-pipeline.Add(Pipe<DataRecord>
-    .Batch(1000, async records => {
-        await BulkInsertToDatabase(records);
+// Batch for analytics storage
+pipeline.Add(Pipe<Tweet>
+    .Batch(1000, async tweets => {
+        await BigQueryClient.InsertRows("tweets_analytics", tweets);
     })
-    .Id("database-writer")
+    .Id("analytics-writer")
     .BatchTriggerPeriod(TimeSpan.FromSeconds(10))
     .ToPipe());
 ```
@@ -425,23 +459,23 @@ pipeline.Add(Pipe<DataRecord>
 ### Real-time Stream Processing
 
 ```csharp
-var pipeline = new Pipeline<StreamEvent>();
+var pipeline = new Pipeline<Tweet>();
 
-// Filter stage
-var filterPipe = Pipe<StreamEvent>
-    .Action(_ => { })
-    .Id("filter")
-    .Filter(evt => evt.Severity >= Severity.Warning)
+// Filter viral tweets
+var viralFilter = Pipe<Tweet>
+    .Action(_ => { })  // Pass-through
+    .Id("viral-filter")
+    .Filter(tweet => tweet.RetweetCount > 1000 || tweet.LikeCount > 5000)
     .ToPipe();
 
-// Route by severity
-var criticalPipe = CreateCriticalAlertPipe();
-var warningPipe = CreateWarningLogPipe();
+// Route by sentiment
+var positivePipe = CreateMarketingPipe();
+var negativePipe = CreateSupportPipe();
 
-filterPipe.LinkTo(evt => 
-    evt.Severity == Severity.Critical ? criticalPipe : warningPipe);
+viralFilter.LinkTo(tweet => 
+    tweet.Sentiment == Sentiment.Positive ? positivePipe : negativePipe);
 
-pipeline.Add(filterPipe);
+pipeline.Add(viralFilter);
 ```
 
 ## Building and Testing
