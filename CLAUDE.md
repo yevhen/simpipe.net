@@ -389,3 +389,68 @@ async\method: Suffix with `Async` =\> `GetDataAsync()`
 # CODING STYLE MEMORIES
 
 - NEVER use underscores for private/internal members
+
+# Documentation Standards
+
+## Required Elements for All Public APIs
+- `<summary>` - Clear, concise description of purpose
+- `<param>` - For all parameters with validation rules
+- `<returns>` - For all methods with return values
+- `<exception>` - For all thrown exceptions
+- `<remarks>` - Performance, threading, and usage guidance
+- `<example>` - Practical code examples
+
+## Formatting Guidelines
+- Use `<see cref="">` for cross-references
+- Use `<paramref name="">` for parameter references
+- Use `<typeparamref name="">` for generic type references
+- Use `<code>` blocks for inline code
+- Use `<para>` for paragraph breaks in remarks
+- Use `<list type="bullet|number">` for structured information
+
+## Content Guidelines
+- **CRITICAL**: Focus on practical usage scenarios
+- Include performance implications
+- **IMPORTANT**: Document threading and concurrency behavior
+- Provide realistic, copy-pasteable examples
+- **CRITICAL**: Explain the "why" not just the "what"
+- Cover common pitfalls and best practices
+
+- ## Performance Documentation Template
+
+Each performance-sensitive class should include this section:
+
+```xml
+/// <remarks>
+/// <para><strong>Performance Characteristics:</strong></para>
+/// <list type="bullet">
+/// <item><strong>Throughput</strong>: Up to X items/second depending on action complexity</item>
+/// <item><strong>Memory</strong>: Bounded by capacity setting; approximately Y bytes per queued item</item>
+/// <item><strong>Latency</strong>: Minimal queuing delay under normal load; back-pressure under overload</item>
+/// <item><strong>Concurrency</strong>: Thread-safe with configurable parallelism</item>
+/// </list>
+/// <para><strong>Threading Model:</strong></para>
+/// <para>
+/// All operations are thread-safe. Items are processed on ThreadPool threads with degree of parallelism
+/// controlling the maximum number of concurrent operations. Completion and metrics can be accessed 
+/// from any thread safely.
+/// </para>
+/// </remarks>
+```
+
+## Best Practices Documentation Template
+
+Each main class should include this section:
+
+```xml
+/// <remarks>
+/// <para><strong>Best Practices:</strong></para>
+/// <list type="number">
+/// <item><strong>Always Complete</strong>: Call Complete() and await Completion for proper shutdown</item>
+/// <item><strong>Monitor Metrics</strong>: Use Block properties to identify bottlenecks</item>  
+/// <item><strong>Configure Capacity</strong>: Set bounded capacity based on memory constraints</item>
+/// <item><strong>Handle Exceptions</strong>: Implement proper error handling in actions</item>
+/// <item><strong>Use Cancellation</strong>: Support cancellation tokens for responsive shutdown</item>
+/// </list>
+/// </remarks>
+```
