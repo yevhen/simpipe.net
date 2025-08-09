@@ -60,16 +60,18 @@ Simpipe.Net is a .NET 9.0 library implementing a pipeline pattern using System.T
 
 ### Specialized Pipe Types
 
-- **ActionPipe<T>**: Executes an action for each item
-- **BatchPipe<T>**: Groups items into batches before processing
+- **ActionPipe**: Executes an action for each item with configurable parallelism
+- **BatchPipe**: Groups items into batches before processing
+- **ForkPipe**: Fork-join parallel processing - executes multiple operations in parallel then rejoins
 - **PipelineLimiter<T>**: Limits work-in-progress items for flow control
 
 ### Key Design Patterns
 
-1. **Fluent Builder Pattern**: `PipeBuilder<T>` provides fluent API for pipe creation
-2. **Decorator Pattern**: Pipes can be wrapped and composed
+1. **Fluent Builder Pattern**: Pipe-specific builders (ActionPipeBuilder, BatchPipeBuilder, ForkPipeBuilder) provide fluent API for pipe creation
+2. **Decorator Pattern**: Pipes can be wrapped and composed (e.g., FilterBlock decorates other blocks)
 3. **Channel Integration**: All pipes use System.Threading.Channels for concurrent execution
 4. **Completion Propagation**: Automatic completion handling through the pipeline
+5. **Fork-Join Pattern**: ParallelBlock manages parallel execution with completion tracking
 
 # CRITICAL: NAMING IS EVERYTHING
 
