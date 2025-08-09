@@ -87,7 +87,7 @@ Pipes are the fundamental building blocks of a pipeline. Each pipe:
 - Receives items of type `T`
 - Processes them according to its implementation
 - Forwards results to the next pipe or routing target
-- Tracks input, output, and working item counts
+- Tracks input, output, and working item counts via the `Block` property
 
 ### Pipeline
 
@@ -97,12 +97,24 @@ A Pipeline is a container that:
 - Provides completion tracking for the entire flow
 - Allows sending items to specific pipes by ID
 
-### Routing
+### Blocks
 
-Pipes support conditional routing:
-- Route items based on predicates
-- Link to multiple downstream pipes
-- Work-in-progress flow control
+Blocks are the low-level processing units that power pipes:
+- **ActionBlock**: Executes actions with configurable parallelism
+- **BatchBlock**: Groups items into batches
+- **BatchActionBlock**: Processes batches with parallelism
+- **TimerBatchBlock**: Batches with time-based flushing
+- **FilterBlock**: Filters items at the block level
+- **ParallelBlock**: Manages fork-join parallel execution
+- **NullBlock**: Discards items (sink)
+
+### Routing and Filtering
+
+Pipes support sophisticated flow control:
+- **Filtering**: Use `.Filter()` to process only matching items
+- **Routing**: Use `.LinkTo()` with predicates for conditional routing
+- **Pass-through**: Non-matching filtered items automatically pass to next pipe
+- **Fork-Join**: Split processing across parallel blocks then rejoin
 
 ### Completion
 
@@ -118,7 +130,7 @@ Simpipe.Net provides graceful shutdown:
 Executes an action for each item with configurable parallelism.
 
 ```csharp
-var pipe = new PipeBuilder<Order>()
+var pipe = Pipe<Order>
     .Action(async order => {
         await ProcessOrder(order);
         Console.WriteLine($"Processed order {order.Id}");
@@ -133,7 +145,7 @@ var pipe = new PipeBuilder<Order>()
 Groups items into fixed-size batches with optional time-based triggers.
 
 ```csharp
-var pipe = new PipeBuilder<LogEntry>()
+var pipe = Pipe<LogEntry>
     .Batch(100, async entries => {
         await BulkInsertLogs(entries);
         Console.WriteLine($"Inserted {entries.Length} log entries");
@@ -160,6 +172,61 @@ await limiter.Send(order);
 await limiter.Complete();
 ```
 
+### ForkPipe (Fork-Join Parallelism)
+
+Execute multiple operations in parallel on the same item and wait for all to complete.
+
+```csharp
+// Define parallel operations
+var validateBlock = Parallel<Order>
+    .Action(async order => await ValidateOrder(order))
+    .Id("validate")
+    .DegreeOfParallelism(2);
+
+var enrichBlock = Parallel<Order>
+    .Action(async order => await EnrichOrderData(order))
+    .Id("enrich")
+    .DegreeOfParallelism(3);
+
+var notifyBlock = Parallel<Order>
+    .Action(async order => await NotifySubscribers(order))
+    .Id("notify");
+
+// Create fork-join pipe
+var forkPipe = Pipe<Order>
+    .Fork(validateBlock, enrichBlock, notifyBlock)
+    .Join(order => Console.WriteLine($"All parallel operations completed for order {order.Id}"))
+    .Id("fork-processor")
+    .ToPipe();
+
+// Items are processed by all blocks in parallel
+await forkPipe.Send(order);
+
+// The next pipe receives the item only after ALL parallel blocks complete
+var nextPipe = Pipe<Order>.Action(SaveOrder).ToPipe();
+forkPipe.LinkNext(nextPipe);
+```
+
+#### Parallel Batch Processing
+
+You can also use batch operations within fork-join:
+
+```csharp
+var batchValidate = Parallel<Transaction>
+    .Batch(100, async transactions => await BulkValidate(transactions))
+    .Id("batch-validate")
+    .BatchTriggerPeriod(TimeSpan.FromSeconds(5));
+
+var batchAudit = Parallel<Transaction>
+    .Batch(50, async transactions => await AuditLog(transactions))
+    .Id("batch-audit");
+
+var forkPipe = Pipe<Transaction>
+    .Fork(batchValidate, batchAudit)
+    .Id("transaction-processor")
+    .ToPipe();
+```
+
 ## Advanced Usage
 
 ### Custom Routing
@@ -176,7 +243,7 @@ sourcePipe.LinkTo(item =>
 
 ### Performance Monitoring
 
-Track pipeline performance using the ItemCounter interface:
+Track pipeline performance using the Block metrics:
 
 ```csharp
 var pipe = Pipe<Data>
@@ -185,24 +252,7 @@ var pipe = Pipe<Data>
     .ToPipe();
 
 // Monitor performance
-var counter = pipe.ItemCounter;
-Console.WriteLine($"Input: {counter.InputCount}, Working: {counter.WorkingCount}, Output: {counter.OutputCount}");
-```
-
-### Performance Monitoring
-
-Monitor pipeline performance in real-time:
-
-```csharp
-var timer = new Timer(_ => {
-    foreach (var pipe in pipeline)
-    {
-        Console.WriteLine($"{pipe.Id}: " +
-            $"Input={pipe.InputCount}, " +
-            $"Working={pipe.WorkingCount}, " +
-            $"Output={pipe.OutputCount}");
-    }
-}, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
+Console.WriteLine($"Input: {pipe.Block.InputCount}, Working: {pipe.Block.WorkingCount}, Output: {pipe.Block.OutputCount}");
 ```
 
 ### Cancellation
@@ -226,27 +276,72 @@ cts.Cancel();
 
 ## Configuration Options
 
-### Common Options
+### Common Pipe Builder Methods
 
-All pipes support these configuration options:
+All pipe builders support these configuration methods:
 
-- **Id**: Unique identifier for the pipe
-- **Filter**: Predicate to filter items
-- **Route**: Function to determine routing
-- **CancellationToken**: Token for cancellation
+- **`.Id(string)`**: Unique identifier for the pipe
+- **`.Filter(Func<T, bool>)`**: Predicate to filter items (non-matching items pass through)
+- **`.Route(Func<T, Pipe<T>>)`**: Function to determine routing target
+- **`.ToPipe()`**: Build and return the configured pipe
 
-### ActionPipe Options
+### ActionPipe Builder Methods
 
-- **DegreeOfParallelism**: Maximum concurrent executions
-- **BoundedCapacity**: Maximum items in the pipe
-- **Action**: The action to execute
+```csharp
+Pipe<T>.Action(action)
+    .Id(string)                      // Pipe identifier
+    .Filter(Func<T, bool>)           // Item filter
+    .Route(Func<T, Pipe<T>>)         // Routing function
+    .DegreeOfParallelism(int)        // Max concurrent executions (default: 1)
+    .BoundedCapacity(int?)           // Max items buffered (default: parallelism * 2)
+    .CancellationToken(token)        // Cancellation support
+    .ToPipe()
+```
 
-### BatchPipe Options
+### BatchPipe Builder Methods
 
-- **BatchSize**: Number of items per batch
-- **BatchTriggerPeriod**: Time to wait before flushing incomplete batch
-- **BoundedCapacity**: Maximum items buffered
-- **DegreeOfParallelism**: Concurrent batch processing
+```csharp
+Pipe<T>.Batch(batchSize, action)
+    .Id(string)                      // Pipe identifier
+    .Filter(Func<T, bool>)           // Item filter
+    .Route(Func<T, Pipe<T>>)         // Routing function
+    .BatchTriggerPeriod(TimeSpan)    // Timer for incomplete batches
+    .DegreeOfParallelism(int)        // Concurrent batch processing (default: 1)
+    .BoundedCapacity(int?)           // Max items buffered (default: batchSize)
+    .CancellationToken(token)        // Cancellation support
+    .ToPipe()
+```
+
+### ForkPipe Builder Methods
+
+```csharp
+Pipe<T>.Fork(parallelBlocks...)
+    .Id(string)                      // Pipe identifier
+    .Filter(Func<T, bool>)           // Item filter
+    .Route(Func<T, Pipe<T>>)         // Routing function
+    .Join(Action<T>)                 // Action when all blocks complete
+    .ToPipe()
+```
+
+### Parallel Block Builder Methods
+
+```csharp
+// For use within Fork pipes
+Parallel<T>.Action(action)
+    .Id(string)                      // Block identifier
+    .Filter(Func<T, bool>)           // Item filter
+    .DegreeOfParallelism(int)        // Max concurrent executions
+    .BoundedCapacity(int?)           // Max items buffered
+    .CancellationToken(token)        // Cancellation support
+
+Parallel<T>.Batch(batchSize, action)
+    .Id(string)                      // Block identifier
+    .Filter(Func<T, bool>)           // Item filter
+    .BatchTriggerPeriod(TimeSpan)    // Timer for incomplete batches
+    .DegreeOfParallelism(int)        // Concurrent batch processing
+    .BoundedCapacity(int?)           // Max items buffered
+    .CancellationToken(token)        // Cancellation support
+```
 
 ## Best Practices
 
@@ -268,8 +363,8 @@ All pipes support these configuration options:
 
 4. **Monitor Performance**: Track pipeline metrics for optimization
    ```csharp
-   var counter = pipe.ItemCounter;
-   if (counter.InputCount > counter.OutputCount * 2)
+   var block = pipe.Block;
+   if (block.InputCount > block.OutputCount * 2)
        Console.WriteLine("Potential bottleneck detected");
    ```
 
