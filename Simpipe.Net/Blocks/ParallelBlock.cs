@@ -9,9 +9,8 @@ public class ParallelBlock<T> : IActionBlock<T>
     readonly CompletionTracker<T> completion;
 
     public ParallelBlock(
-        int capacity,
         int blockCount,
-        Func<T, Task> done,
+        BlockItemAction<T> done,
         Func<BlockItemAction<T>, Dictionary<string, IActionBlock<T>>> blocksFactory,
         CancellationToken cancellationToken = default)
     {
@@ -20,8 +19,8 @@ public class ParallelBlock<T> : IActionBlock<T>
         blocks = blocksFactory(new BlockItemAction<T>(completion.TrackDone));
 
         input = new ActionBlock<T>(
-            capacity: capacity,
-            parallelism: blockCount,
+            capacity: 1,
+            parallelism: 1,
             BlockItemAction<T>.Async(SendAll),
             cancellationToken: cancellationToken);
     }
@@ -48,9 +47,9 @@ internal class CompletionTracker<T>
     readonly ActionBlock<T> completion;
     readonly Dictionary<object, int> completed = new();
     readonly int blockCount;
-    readonly Func<T, Task> done;
+    readonly BlockItemAction<T> done;
 
-    public CompletionTracker(int blockCount, Func<T, Task> done)
+    public CompletionTracker(int blockCount, BlockItemAction<T> done)
     {
         this.blockCount = blockCount;
         this.done = done;
@@ -68,7 +67,7 @@ internal class CompletionTracker<T>
             completed[item] = 1;
 
         if (completed[item] == blockCount)
-            await done(item);
+            await done.Execute(new BlockItem<T>(item));
     }
 
     public async Task TrackDone(BlockItem<T> item)

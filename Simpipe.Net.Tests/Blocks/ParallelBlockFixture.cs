@@ -17,13 +17,12 @@ public class ParallelBlockFixture
         var tcs1 = new TaskCompletionSource();
 
         var parallelBlock = new ParallelBlock<TestItem>(
-            capacity: 1,
             blockCount: 2,
-            done: item =>
+            done: BlockItemAction<TestItem>.Async(x =>
             {
-                doneItems.Add(item);
+                doneItems.Add(x);
                 return Task.CompletedTask;
-            },
+            }),
             innerDone => new()
             {
                 ["b1"] = new ActionBlock<TestItem>(
