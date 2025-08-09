@@ -5,8 +5,8 @@ public class ParallelBlockFixture
 {
     class TestItem
     {
-        public string Block1Value;
-        public string Block2Value;
+        public required string Block1Value;
+        public required string Block2Value;
     }
 
     [Test]
