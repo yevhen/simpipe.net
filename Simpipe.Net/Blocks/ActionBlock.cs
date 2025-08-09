@@ -68,7 +68,7 @@ public class ActionBlock<T> : IActionBlock<T>
         if (!cancellationToken.IsCancellationRequested)
             await done.Execute(item);
 
-        metrics.TrackDoneCompleted(item);
+        metrics.TrackGone(item);
     }
 
     public async Task Send(BlockItem<T> item)

@@ -59,7 +59,7 @@ public class BatchBlock<T> : IBlock
 
         await done(batch);
 
-        metrics.TrackDoneCompleted(new BlockItem<T>(batch));
+        metrics.TrackGone(new BlockItem<T>(batch));
     }
 
     public async Task Send(T item)

@@ -27,7 +27,7 @@ internal class BlockMetrics<T>
         Interlocked.Add(ref outputCount, item.Size);
     }
 
-    public void TrackDoneCompleted(BlockItem<T> item)
+    public void TrackGone(BlockItem<T> item)
     {
         Interlocked.Add(ref outputCount, -item.Size);
     }
