@@ -190,8 +190,52 @@ public class ActionBlock<T> : IActionBlock<T>
     public int WorkingCount => executor.WorkingCount;
 }
 
+/// <summary>
+/// Provides extension methods for simplified interaction with <see cref="IActionBlock{T}"/> instances.
+/// </summary>
+/// <remarks>
+/// <para>
+/// These extension methods provide convenience overloads that automatically wrap items in
+/// <see cref="BlockItem{T}"/> instances, simplifying the API for common use cases.
+/// </para>
+/// </remarks>
 public static class ActionBlockExtensions
 {
+    /// <summary>
+    /// Sends a single item to the action block.
+    /// </summary>
+    /// <typeparam name="T">The type of item being sent.</typeparam>
+    /// <param name="block">The action block to send the item to.</param>
+    /// <param name="item">The item to send for processing.</param>
+    /// <returns>A task that represents the asynchronous send operation.</returns>
+    /// <remarks>
+    /// This extension method wraps the single item in a <see cref="BlockItem{T}"/> before sending,
+    /// providing a simpler API for single-item processing scenarios.
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// IActionBlock&lt;string&gt; block = new ActionBlock&lt;string&gt;(...);
+    /// await block.Send("Hello");  // Instead of: block.Send(new BlockItem&lt;string&gt;("Hello"))
+    /// </code>
+    /// </example>
     public static Task Send<T>(this IActionBlock<T> block, T item) => block.Send(new BlockItem<T>(item));
+    
+    /// <summary>
+    /// Sends an array of items as a batch to the action block.
+    /// </summary>
+    /// <typeparam name="T">The type of items being sent.</typeparam>
+    /// <param name="block">The action block to send the items to.</param>
+    /// <param name="items">The array of items to send as a batch.</param>
+    /// <returns>A task that represents the asynchronous send operation.</returns>
+    /// <remarks>
+    /// This extension method wraps the array in a <see cref="BlockItem{T}"/> for batch processing,
+    /// providing a simpler API for batch scenarios.
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// IActionBlock&lt;string&gt; block = new ActionBlock&lt;string&gt;(...);
+    /// await block.Send(new[] { "Hello", "World" });  // Sent as a batch
+    /// </code>
+    /// </example>
     public static Task Send<T>(this IActionBlock<T> block, T[] items) => block.Send(new BlockItem<T>(items));
 }
