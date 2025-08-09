@@ -2,14 +2,8 @@
 
 namespace Simpipe.Pipes;
 
-public class Pipe<T>
+public partial class Pipe<T>
 {
-    public static ActionPipeBuilder<T> Action(Action<T> action) => new(BlockItemAction<T>.Sync(action));
-    public static ActionPipeBuilder<T> Action(Func<T, Task> action) => new(BlockItemAction<T>.Async(action));
-
-    public static BatchPipeBuilder<T> Batch(int batchSize, Action<T[]> action) => new(batchSize, BlockItemAction<T>.BatchSync(action));
-    public static BatchPipeBuilder<T> Batch(int batchSize, Func<T[], Task> action) => new(batchSize, BlockItemAction<T>.BatchAsync(action));
-
     Pipe<T>? next;
 
     readonly Func<T, bool>? filter;

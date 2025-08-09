@@ -2,6 +2,12 @@
 
 namespace Simpipe.Pipes;
 
+public partial class Pipe<T>
+{
+    public static BatchPipeBuilder<T> Batch(int batchSize, Action<T[]> action) => new(batchSize, BlockItemAction<T>.BatchSync(action));
+    public static BatchPipeBuilder<T> Batch(int batchSize, Func<T[], Task> action) => new(batchSize, BlockItemAction<T>.BatchAsync(action));
+}
+
 public sealed class BatchPipeBuilder<T>(int batchSize, BlockItemAction<T> action)
 {
     string id = "pipe-id";

@@ -310,17 +310,18 @@ public class PipeFixture
         var received1 = new List<int>();
         var received2 = new List<int>();
 
-        Pipe<int> p1 = Pipe<int>.Action(x =>
+        Pipe<int> p1 = Pipe<int>.Action((Action<int>)(x =>
         {
             Thread.Sleep(1);
             received1.Add(x);
-        });
+        }));
 
         Action<int[]> action = x =>
         {
             Thread.Sleep(1);
             received2.Add(x[0]);
         };
+
         Pipe<int> p2 = Pipe<int>.Batch(1, action);
 
         p1.LinkNext(p2);

@@ -2,6 +2,12 @@
 
 namespace Simpipe.Pipes;
 
+public partial class Pipe<T>
+{
+    public static ActionPipeBuilder<T> Action(Action<T> action) => new(BlockItemAction<T>.Sync(action));
+    public static ActionPipeBuilder<T> Action(Func<T, Task> action) => new(BlockItemAction<T>.Async(action));
+}
+
 public sealed class ActionPipeBuilder<T>(BlockItemAction<T> action)
 {
     string id = "pipe-id";
