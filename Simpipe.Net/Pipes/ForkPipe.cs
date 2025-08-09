@@ -4,10 +4,10 @@ namespace Simpipe.Pipes;
 
 public partial class Pipe<T>
 {
-    public static ForkPipeBuilder<T> Fork(params ParallelBlockBuilder<T>[] blocks) => new(blocks);
+    public static ForkPipeBuilder<T> Fork(params IParallelBlockBuilder<T>[] blocks) => new(blocks);
 }
 
-public class ForkPipeBuilder<T>(params ParallelBlockBuilder<T>[] blocks)
+public class ForkPipeBuilder<T>(params IParallelBlockBuilder<T>[] blocks)
 {
     string id = "pipe-id";
     Func<T, bool>? filter;
@@ -67,13 +67,13 @@ public static class Parallel<T>
     public static ParallelBatchActionBlockBuilder<T> Batch(int batchSize, Func<T[], Task> action) => new(batchSize, BlockItemAction<T>.BatchAsync(action));
 }
 
-public interface ParallelBlockBuilder<T>
+public interface IParallelBlockBuilder<T>
 {
     string Id { get; }
     IActionBlock<T> ToBlock(BlockItemAction<T> done);
 }
 
-public class ParallelActionBlockBuilder<T>(BlockItemAction<T> action) : ParallelBlockBuilder<T>
+public class ParallelActionBlockBuilder<T>(BlockItemAction<T> action) : IParallelBlockBuilder<T>
 {
     string id = "block-id";
     Func<T, bool>? filter;
@@ -112,9 +112,18 @@ public class ParallelActionBlockBuilder<T>(BlockItemAction<T> action) : Parallel
         return this;
     }
 
-    string ParallelBlockBuilder<T>.Id => id;
+    string IParallelBlockBuilder<T>.Id => id;
 
-    IActionBlock<T> ParallelBlockBuilder<T>.ToBlock(BlockItemAction<T> done) => new ActionBlock<T>(
+    IActionBlock<T> IParallelBlockBuilder<T>.ToBlock(BlockItemAction<T> done)
+    {
+        var block = CreateActionBlock(done);
+        return CreateFilterBlock(block, done);
+    }
+
+    IActionBlock<T> CreateFilterBlock(IActionBlock<T> block, BlockItemAction<T> done) =>
+        filter is null ? block : new FilterBlock<T>(block, filter, done);
+
+    ActionBlock<T> CreateActionBlock(BlockItemAction<T> done) => new(
         boundedCapacity ?? degreeOfParallelism * 2,
         degreeOfParallelism,
         action,
@@ -122,7 +131,7 @@ public class ParallelActionBlockBuilder<T>(BlockItemAction<T> action) : Parallel
         cancellationToken);
 }
 
-public sealed class ParallelBatchActionBlockBuilder<T>(int batchSize, BlockItemAction<T> action) : ParallelBlockBuilder<T>
+public sealed class ParallelBatchActionBlockBuilder<T>(int batchSize, BlockItemAction<T> action) : IParallelBlockBuilder<T>
 {
     string id = "block-id";
     Func<T, bool>? filter;
@@ -168,9 +177,18 @@ public sealed class ParallelBatchActionBlockBuilder<T>(int batchSize, BlockItemA
         return this;
     }
 
-    string ParallelBlockBuilder<T>.Id => id;
+    string IParallelBlockBuilder<T>.Id => id;
 
-    IActionBlock<T> ParallelBlockBuilder<T>.ToBlock(BlockItemAction<T> done) => new BatchActionBlock<T>(
+    IActionBlock<T> IParallelBlockBuilder<T>.ToBlock(BlockItemAction<T> done)
+    {
+        var block = CreateBatchActionBlock(done);
+        return CreateFilterBlock(block, done);
+    }
+
+    IActionBlock<T> CreateFilterBlock(IActionBlock<T> block, BlockItemAction<T> done) =>
+        filter is null ? block : new FilterBlock<T>(block, filter, done);
+
+    IActionBlock<T> CreateBatchActionBlock(BlockItemAction<T> done) => new BatchActionBlock<T>(
         boundedCapacity ?? batchSize,
         batchSize,
         batchTriggerPeriod != TimeSpan.Zero ? batchTriggerPeriod : Timeout.InfiniteTimeSpan,

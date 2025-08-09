@@ -1,3 +1,5 @@
+using Simpipe.Blocks;
+
 namespace Simpipe.Pipes;
 
 [TestFixture]
@@ -5,6 +7,7 @@ public class ForkPipeFixture
 {
     class TestItem
     {
+        public string Text = "";
         public required string Block1Value;
         public required string Block2Value;
     }
@@ -80,5 +83,46 @@ public class ForkPipeFixture
         await Task.Delay(10);
 
         Assert.That(nextReceived[0], Is.SameAs(item));
+    }
+
+    [Test]
+    public async Task Parallel_action_block_filter()
+    {
+        var item = new TestItem { Text = "test", Block1Value = "", Block2Value = "" };
+
+        IParallelBlockBuilder<TestItem> builder = new ParallelActionBlockBuilder<TestItem>(
+            BlockItemAction<TestItem>.Sync(x => x.Block1Value = "foo"))
+            .Filter(x => x.Text != "test");
+
+        var doneItems = new List<TestItem>();
+        var block = builder.ToBlock(BlockItemAction<TestItem>.Sync(doneItems.Add));
+
+        await block.Send(item);
+        await block.Complete();
+
+        Assert.That(doneItems, Has.Count.EqualTo(1));
+        Assert.That(doneItems[0], Is.SameAs(item));
+        Assert.That(item.Block1Value, Is.EqualTo(""));
+    }
+
+    [Test]
+    public async Task Parallel_batch_action_block_filter()
+    {
+        var item = new TestItem { Text = "test", Block1Value = "", Block2Value = "" };
+
+        IParallelBlockBuilder<TestItem> builder = new ParallelBatchActionBlockBuilder<TestItem>(
+            batchSize: 1,
+            BlockItemAction<TestItem>.BatchSync(x => x[0].Block1Value = "foo"))
+            .Filter(x => x.Text != "test");
+
+        var doneItems = new List<TestItem>();
+        var block = builder.ToBlock(BlockItemAction<TestItem>.Sync(doneItems.Add));
+
+        await block.Send(item);
+        await block.Complete();
+
+        Assert.That(doneItems, Has.Count.EqualTo(1));
+        Assert.That(doneItems[0], Is.SameAs(item));
+        Assert.That(item.Block1Value, Is.EqualTo(""));
     }
 }
