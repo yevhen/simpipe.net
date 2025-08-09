@@ -1,6 +1,6 @@
 namespace Simpipe.Blocks;
 
-internal class BlockMetrics<T>
+internal class MetricsTrackingExecutor<T>
 {
     volatile int inputCount;
     volatile int outputCount;
@@ -10,25 +10,29 @@ internal class BlockMetrics<T>
     public int OutputCount => outputCount;
     public int WorkingCount => workingCount;
 
-    public void TrackSend(BlockItem<T> item)
+    public async Task ExecuteSend(BlockItem<T> item, BlockItemAction<T> send)
     {
         Interlocked.Add(ref inputCount, item.Size);
+
+        await send.Execute(item);
     }
 
-    public void TrackExecute(BlockItem<T> item)
+    public async Task ExecuteAction(BlockItem<T> item, BlockItemAction<T> action)
     {
         Interlocked.Add(ref inputCount, -item.Size);
         Interlocked.Add(ref workingCount, item.Size);
-    }
 
-    public void TrackDone(BlockItem<T> item)
-    {
+        await action.Execute(item);
+
         Interlocked.Add(ref workingCount, -item.Size);
-        Interlocked.Add(ref outputCount, item.Size);
     }
 
-    public void TrackGone(BlockItem<T> item)
+    public async Task ExecuteDone(BlockItem<T> item, BlockItemAction<T> done)
     {
+        Interlocked.Add(ref outputCount, item.Size);
+
+        await done.Execute(item);
+
         Interlocked.Add(ref outputCount, -item.Size);
     }
 }

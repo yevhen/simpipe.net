@@ -10,7 +10,7 @@ public interface IActionBlock<T> : IBlock
 
 public class ActionBlock<T> : IActionBlock<T>
 {
-    readonly BlockMetrics<T> metrics = new();
+    readonly MetricsTrackingExecutor<T> executor = new();
     readonly Channel<BlockItem<T>> input;
     readonly BlockItemAction<T> send;
     readonly BlockItemAction<T> action;
@@ -54,29 +54,15 @@ public class ActionBlock<T> : IActionBlock<T>
         await Done(item);
     }
 
-    async Task Execute(BlockItem<T> item)
-    {
-        metrics.TrackExecute(item);
-
-        await action.Execute(item);
-    }
+    Task Execute(BlockItem<T> item) => executor.ExecuteAction(item, action);
 
     async Task Done(BlockItem<T> item)
     {
-        metrics.TrackDone(item);
-
         if (!cancellationToken.IsCancellationRequested)
-            await done.Execute(item);
-
-        metrics.TrackGone(item);
+            await executor.ExecuteDone(item, done);
     }
 
-    public async Task Send(BlockItem<T> item)
-    {
-        metrics.TrackSend(item);
-
-        await send.Execute(item);
-    }
+    public Task Send(BlockItem<T> item) => executor.ExecuteSend(item, send);
 
     public async Task Complete()
     {
@@ -84,9 +70,9 @@ public class ActionBlock<T> : IActionBlock<T>
         await processor;
     }
 
-    public int InputCount => metrics.InputCount;
-    public int OutputCount => metrics.OutputCount;
-    public int WorkingCount => metrics.WorkingCount;
+    public int InputCount => executor.InputCount;
+    public int OutputCount => executor.OutputCount;
+    public int WorkingCount => executor.WorkingCount;
 }
 
 public static class ActionBlockExtensions
