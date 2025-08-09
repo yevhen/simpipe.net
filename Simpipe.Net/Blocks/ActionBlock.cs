@@ -67,6 +67,7 @@ public class ActionBlock<T> : IActionBlock<T>
     public async Task Complete()
     {
         input.Writer.Complete();
+
         await processor;
     }
 

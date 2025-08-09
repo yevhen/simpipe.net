@@ -46,7 +46,9 @@ public class TimerBatchBlock<T> : IBlock
     async Task ForceFlush()
     {
         timerFlushInProgress = true;
+
         await batchBlock.FlushBuffer();
+
         timerFlushInProgress = false;
     }
 
@@ -55,7 +57,9 @@ public class TimerBatchBlock<T> : IBlock
     public async Task Complete()
     {
         await batchBlock.Complete();
+
         flushTimer.Dispose();
+
         await processor;
     }
 
