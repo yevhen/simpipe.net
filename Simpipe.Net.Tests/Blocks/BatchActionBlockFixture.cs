@@ -6,7 +6,7 @@ namespace Simpipe.Blocks;
 public class BatchActionBlockFixture
 {
     [Test]
-    public async Task BatchActionBlock_ProcessesBatchesWithAction()
+    public async Task Processes_batches_with_action()
     {
         const int itemCount = 4;
         var batches = Channel.CreateUnbounded<string[]>();
@@ -31,7 +31,7 @@ public class BatchActionBlockFixture
     }
 
     [Test]
-    public async Task BatchActionBlock_StopsProcessingAfterExceptionInBatch()
+    public async Task Stops_processing_after_exception_in_batch()
     {
         var processedBatches = new List<string[]>();
         

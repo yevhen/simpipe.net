@@ -1,4 +1,4 @@
-﻿namespace Simpipe.Pipes;
+namespace Simpipe.Pipes;
 
 [TestFixture]
 public class PipelineFixture
@@ -9,7 +9,7 @@ public class PipelineFixture
     public void SetUp() => pipeline = new();
 
     [Test]
-    public void Duplicate_id()
+    public void Throws_on_duplicate_id()
     {
         var pipe1 = PipeMock<int>.Create(id: "1");
         pipeline.Add(pipe1);
@@ -21,7 +21,7 @@ public class PipelineFixture
     }
 
     [Test]
-    public async Task Send_delegates_to_head()
+    public async Task Delegates_send_to_head()
     {
         var firstProcessed = new List<int>();
         var first = PipeMock<int>.Create(id: "1", firstProcessed.Add);
@@ -36,7 +36,7 @@ public class PipelineFixture
     }
 
     [Test]
-    public async Task Send_to_arbitrary_pipe_by_id_head()
+    public async Task Sends_to_arbitrary_pipe_by_id_when_head()
     {
         var firstProcessed = new List<int>();
         var secondProcessed = new List<int>();
@@ -56,7 +56,7 @@ public class PipelineFixture
     }
 
     [Test]
-    public async Task Send_to_arbitrary_pipe_by_id_not_head()
+    public async Task Sends_to_arbitrary_pipe_by_id_when_not_head()
     {
         var firstProcessed = new List<int>();
         var secondProcessed = new List<int>();
@@ -76,7 +76,7 @@ public class PipelineFixture
     }
 
     [Test]
-    public void Start_processing_from_arbitrary_pipe_invalid_id()
+    public void Throws_when_starting_from_invalid_pipe_id()
     {
         var firstProcessed = new List<int>();
         var secondProcessed = new List<int>();
@@ -97,7 +97,7 @@ public class PipelineFixture
     }
 
     [Test]
-    public async Task Insert_default_route()
+    public async Task Inserts_default_route()
     {
         var failProcessed = new List<int>();
         var firstProcessed = new List<int>();
@@ -143,7 +143,7 @@ public class PipelineFixture
     }
 
     [Test]
-    public async Task Pipeline_completion_waits_completion_of_all_pipes()
+    public async Task Waits_for_all_pipes_to_complete()
     {
         var first = PipeMock<int>.Create(id: "1");
         var second = PipeMock<int>.Create(id: "2");
@@ -169,7 +169,7 @@ public class PipelineFixture
     }
 
     [Test]
-    public void SendNext_source_id_not_exists()
+    public void Throws_on_SendNext_when_source_id_does_not_exist()
     {
         var pipe = PipeMock<int>.Create(id: "1");
         pipeline.Add(pipe);
@@ -178,7 +178,7 @@ public class PipelineFixture
     }
 
     [Test]
-    public async Task SendNext_source_id_exists()
+    public async Task Sends_next_when_source_id_exists()
     {
         var nextProcessed = new List<int>();
         var pipe = PipeMock<int>.Create(id: "1");

@@ -4,7 +4,7 @@ namespace Simpipe.Blocks;
 public class ActionBlockFixture
 {
     [Test]
-    public async Task ActionBlock_ProcessesSingleItem()
+    public async Task Processes_single_item()
     {
         var processed = 0;
         var completed = 0;
@@ -23,7 +23,7 @@ public class ActionBlockFixture
     }
 
     [Test]
-    public async Task ActionBlock_ProcessesInParallel()
+    public async Task Processes_in_parallel()
     {
         var processedCount = 0;
         var maxConcurrency = 0;
@@ -50,7 +50,7 @@ public class ActionBlockFixture
     }
 
     [Test]
-    public async Task ActionBlock_StopsProcessingAfterException()
+    public async Task Stops_processing_after_exception()
     {
         var processedItems = new List<int>();
         

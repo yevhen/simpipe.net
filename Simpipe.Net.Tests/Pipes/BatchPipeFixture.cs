@@ -1,4 +1,4 @@
-﻿namespace Simpipe.Pipes;
+namespace Simpipe.Pipes;
 
 [TestFixture]
 public class BatchPipeFixture
@@ -33,7 +33,7 @@ public class BatchPipeFixture
     }
 
     [Test]
-    public async Task Completion_pushes_to_next()
+    public async Task Pushes_to_next_on_completion()
     {
         Setup(async _ =>
         {
@@ -51,7 +51,7 @@ public class BatchPipeFixture
     }
 
     [Test]
-    public async Task Batching_by_size()
+    public async Task Batches_by_size()
     {
         var items = new List<string>();
 
@@ -68,7 +68,7 @@ public class BatchPipeFixture
     }
 
     [Test]
-    public async Task Batching_by_time()
+    public async Task Batches_by_time()
     {
         var items = new List<string>();
         var executed = new TaskCompletionSource();
@@ -88,7 +88,7 @@ public class BatchPipeFixture
     }
 
     [Test]
-    public async Task Batching_respects_completion()
+    public async Task Respects_completion_when_batching()
     {
         var items = new List<string[]>();
         Setup(2, x => items.Add(x));

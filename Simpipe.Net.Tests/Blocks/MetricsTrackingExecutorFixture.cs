@@ -5,14 +5,14 @@ public class MetricsTrackingExecutorFixture
     static readonly BlockItem<int> Item = new([42, 50, 100]);
 
     [Test]
-    public void Input_count_is_zero_on_creation()
+    public void Has_input_count_zero_on_creation()
     {
         var executor = new MetricsTrackingExecutor<int>();
         Assert.That(executor.InputCount, Is.EqualTo(0));
     }
 
     [Test]
-    public async Task Input_count_increments_on_send()
+    public async Task Increments_input_count_on_send()
     {
         var executor = new MetricsTrackingExecutor<int>();
 
@@ -22,7 +22,7 @@ public class MetricsTrackingExecutorFixture
     }
 
     [Test]
-    public async Task Input_count_decrements_on_action_execute()
+    public async Task Decrements_input_count_on_action_execute()
     {
         var executor = new MetricsTrackingExecutor<int>();
 
@@ -33,14 +33,14 @@ public class MetricsTrackingExecutorFixture
     }
 
     [Test]
-    public void Working_count_is_zero_on_creation()
+    public void Has_working_count_zero_on_creation()
     {
         var executor = new MetricsTrackingExecutor<int>();
         Assert.That(executor.WorkingCount, Is.EqualTo(0));
     }
 
     [Test]
-    public async Task Working_count_increments_on_action()
+    public async Task Increments_working_count_on_action()
     {
         var executor = new MetricsTrackingExecutor<int>();
 
@@ -51,7 +51,7 @@ public class MetricsTrackingExecutorFixture
     }
 
     [Test]
-    public async Task Working_count_decrements_on_action_complete()
+    public async Task Decrements_working_count_on_action_complete()
     {
         var executor = new MetricsTrackingExecutor<int>();
 
@@ -61,14 +61,14 @@ public class MetricsTrackingExecutorFixture
     }
 
     [Test]
-    public void Output_count_is_zero_on_creation()
+    public void Has_output_count_zero_on_creation()
     {
         var executor = new MetricsTrackingExecutor<int>();
         Assert.That(executor.OutputCount, Is.EqualTo(0));
     }
 
     [Test]
-    public async Task Output_count_increments_on_done()
+    public async Task Increments_output_count_on_done()
     {
         var executor = new MetricsTrackingExecutor<int>();
 
@@ -79,7 +79,7 @@ public class MetricsTrackingExecutorFixture
     }
 
     [Test]
-    public async Task Output_count_decrements_on_done_complete()
+    public async Task Decrements_output_count_on_done_complete()
     {
         var executor = new MetricsTrackingExecutor<int>();
 

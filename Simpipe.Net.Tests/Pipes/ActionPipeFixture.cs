@@ -1,4 +1,4 @@
-﻿namespace Simpipe.Pipes;
+namespace Simpipe.Pipes;
 
 [TestFixture]
 public class ActionPipeFixture
@@ -33,7 +33,7 @@ public class ActionPipeFixture
     }
 
     [Test]
-    public async Task Completion_pushes_to_next()
+    public async Task Pushes_to_next_on_completion()
     {
         Setup(async _ =>
         {

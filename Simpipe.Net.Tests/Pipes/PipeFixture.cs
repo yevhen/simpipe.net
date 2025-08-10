@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 
 namespace Simpipe.Pipes;
@@ -54,7 +54,7 @@ public class PipeFixture
     }
 
     [Test]
-    public async Task Send_to_next_pipe_is_awaited()
+    public async Task Awaits_send_to_next_pipe()
     {
         var blocker = new TaskCompletionSource();
 
@@ -71,7 +71,7 @@ public class PipeFixture
     }
 
     [Test]
-    public async Task SendNext_executes_next_pipe()
+    public async Task Executes_next_pipe_on_SendNext()
     {
         var mainProcessed = new List<TestItem>();
         var nextProcessed = new List<TestItem>();
@@ -87,7 +87,7 @@ public class PipeFixture
     }
 
     [Test]
-    public void SendNext_sends_to_null_if_no_next()
+    public void Sends_to_null_if_no_next_on_SendNext()
     {
         var testPipe = PipeMock<TestItem>.Create();
 
@@ -128,7 +128,7 @@ public class PipeFixture
     }
 
     [Test]
-    public async Task Check_next_route_if_route_returns_null()
+    public async Task Checks_next_route_if_route_returns_null()
     {
         var pipe = PipeMock<TestItem>.Create();
 
@@ -146,7 +146,7 @@ public class PipeFixture
     }
 
     [Test]
-    public async Task Routes_match_in_order()
+    public async Task Matches_routes_in_order()
     {
         var pipe = PipeMock<TestItem>.Create();
         var routed1Received = new List<TestItem>();
@@ -165,7 +165,7 @@ public class PipeFixture
     }
 
     [Test]
-    public async Task Conditional_execution_when_filter_matches()
+    public async Task Executes_conditionally_when_filter_matches()
     {
         var mainProcessed = new List<TestItem>();
         var nextProcessed = new List<TestItem>();
@@ -184,7 +184,7 @@ public class PipeFixture
     }
 
     [Test]
-    public async Task Conditional_execution_when_filter_does_not_match()
+    public async Task Does_not_execute_action_when_filter_does_not_match()
     {
         var mainProcessed = new List<TestItem>();
         var nextProcessed = new List<TestItem>();
@@ -203,7 +203,7 @@ public class PipeFixture
     }
 
     [Test]
-    public async Task Recursive_conditional_filtering_via_Send()
+    public async Task Filters_recursively_when_using_send()
     {
         var mainProcessed = new List<TestItem>();
         var nextProcessed = new List<TestItem>();
@@ -229,7 +229,7 @@ public class PipeFixture
     }
 
     [Test]
-    public async Task Recursive_conditional_filtering_via_link()
+    public async Task Filters_recursively_when_using_link()
     {
         var mainProcessed = new List<TestItem>();
         var nextProcessed = new List<TestItem>();
@@ -253,7 +253,7 @@ public class PipeFixture
     }
 
     [Test]
-    public async Task Routes_are_only_used_for_items_that_passed_through_block()
+    public async Task Uses_routes_only_for_items_that_passed_through_block()
     {
         var mainProcessed = new List<TestItem>();
         var nextProcessed = new List<TestItem>();
@@ -279,7 +279,7 @@ public class PipeFixture
     }
 
     [Test]
-    public async Task Cancellation_does_not_send_completed_item_to_next_pipe()
+    public async Task Does_not_send_completed_item_to_next_pipe_on_cancellation()
     {
         var blocker = new TaskCompletionSource();
 

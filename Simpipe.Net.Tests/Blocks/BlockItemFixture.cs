@@ -1,10 +1,10 @@
-﻿namespace Simpipe.Blocks;
+namespace Simpipe.Blocks;
 
 [TestFixture]
 public class BlockItemFixture
 {
     [Test]
-    public void Get_first_value()
+    public void Gets_first_value()
     {
         Assert.That(new BlockItem<int>(42).First(), Is.EqualTo(42));
         Assert.That(new BlockItem<int>([42]).First(), Is.EqualTo(42));
@@ -12,7 +12,7 @@ public class BlockItemFixture
     }
 
     [Test]
-    public void Get_contained_value()
+    public void Gets_contained_value()
     {
         Assert.That(new BlockItem<int>(42).GetValue(), Is.EqualTo(42));
         Assert.That(new BlockItem<int>([42]).GetArray(), Is.EqualTo(new[]{42}));
@@ -26,7 +26,7 @@ public class BlockItemFixture
     }
 
     [Test]
-    public void Check_contained_value()
+    public void Checks_contained_value()
     {
         Assert.True(new BlockItem<int>(42).IsValue);
         Assert.False(new BlockItem<int>(42).IsArray);
@@ -42,7 +42,7 @@ public class BlockItemFixture
     }
 
     [Test]
-    public async Task Apply_with_empty_value()
+    public async Task Applies_with_empty_value()
     {
         var item = BlockItem<int>.Empty;
 
@@ -62,7 +62,7 @@ public class BlockItemFixture
     }
 
     [Test]
-    public async Task Apply_with_single_value()
+    public async Task Applies_with_single_value()
     {
         const int value = 42;
         var item = new BlockItem<int>(value);
@@ -83,7 +83,7 @@ public class BlockItemFixture
     }
 
     [Test]
-    public async Task Apply_with_value_array()
+    public async Task Applies_with_value_array()
     {
         var values = new[]{42, 100};
         var item = new BlockItem<int>(values);
@@ -104,14 +104,14 @@ public class BlockItemFixture
     }
 
     [Test]
-    public void Filter_with_empty_value()
+    public void Filters_with_empty_value()
     {
         Assert.That(BlockItem<int>.Empty.Where(_ => false), Is.EqualTo(BlockItem<int>.Empty));
         Assert.That(BlockItem<int>.Empty.Where(_ => true), Is.EqualTo(BlockItem<int>.Empty));
     }
 
     [Test]
-    public void Filter_with_single_value()
+    public void Filters_with_single_value()
     {
         var item = new BlockItem<int>(42);
 
@@ -121,7 +121,7 @@ public class BlockItemFixture
     }
 
     [Test]
-    public void Filter_with_array()
+    public void Filters_with_array()
     {
         var item = new BlockItem<int>([42, 100]);
 
@@ -135,7 +135,7 @@ public class BlockItemFixture
     }
 
     [Test]
-    public void Equals_for_empty_value()
+    public void Is_equal_for_empty_value()
     {
         var empty1 = BlockItem<int>.Empty;
         var empty2 = BlockItem<int>.Empty;
@@ -143,7 +143,7 @@ public class BlockItemFixture
     }
 
     [Test]
-    public void Equals_for_single_value()
+    public void Is_equal_for_single_value()
     {
         var item1 = new BlockItem<int>(42);
         var item2 = new BlockItem<int>(42);
@@ -152,7 +152,7 @@ public class BlockItemFixture
     }
 
     [Test]
-    public void Equals_for_array()
+    public void Is_equal_for_array()
     {
         var values = new[]{42};
         var item1 = new BlockItem<int>(values);
@@ -162,7 +162,7 @@ public class BlockItemFixture
     }
 
     [Test]
-    public void Item_size()
+    public void Has_correct_size()
     {
         Assert.That(BlockItem<int>.Empty.Size, Is.EqualTo(0));
         Assert.That(new BlockItem<int>(42).Size, Is.EqualTo(1));

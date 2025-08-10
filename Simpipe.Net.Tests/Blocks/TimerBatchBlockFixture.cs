@@ -4,7 +4,7 @@ namespace Simpipe.Blocks;
 public class TimerBatchBlockFixture
 {
     [Test]
-    public async Task TimerBatchBlock_FlushesOnTimeout()
+    public async Task Flushes_on_timeout()
     {
         var batches = new List<int[]>();
         
@@ -30,7 +30,7 @@ public class TimerBatchBlockFixture
     }
 
     [Test]
-    public async Task TimerBatchBlock_FlushesOnSize()
+    public async Task Flushes_on_size()
     {
         var batches = new List<int[]>();
         
@@ -55,7 +55,7 @@ public class TimerBatchBlockFixture
     }
 
     [Test]
-    public async Task TimerBatchBlock_DoesNotFlushByTimerIfRecentlyFlushedBySize()
+    public async Task Does_not_flush_by_timer_if_recently_flushed_by_size()
     {
         var batches = new List<int[]>();
         

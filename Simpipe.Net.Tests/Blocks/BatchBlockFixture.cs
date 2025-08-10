@@ -4,7 +4,7 @@ namespace Simpipe.Blocks;
 public class BatchBlockFixture
 {
     [Test]
-    public async Task BatchBlock_FlushesBySize()
+    public async Task Flushes_by_size()
     {
         var batches = new List<int[]>();
         
