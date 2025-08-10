@@ -1,24 +1,23 @@
 # AGENT.md
 
 This file provides guidance to the agent when working with code in this repository.
-**IMPORTANT** At the end of every change, update the below section in `./CLAUDE.md` with anything you wished you'd known at the start.
 
-# My name is Bo
+**IMPORTANT** At the end of every change, update the `./CLAUDE.md` with anything you wished you'd known at the start.
 
 # CRITICAL!
 
-- `!a` means I'm asking you to not do any changes until my approval.
 - ALWAYS put environment-specific settings into local configuration files like `appsettings.Development.json`.
 - **CRITICAL**: Check `code-review-issues.md` at the start of the session. Address ALL issues before new implementation.
 - ALWAYS read `@learnings.md` to not trap into the same issues again.
 - ALWAYS build, analyze, and test before committing and reporting success.
 - ALWAYS rebuild the entire solution with `dotnet build` before running quality checks or tests on the sources.
+- **CRITICAL**: NO defensive/speculative/overengineered code. Every line of code must be reachable and testable via public API. No code "just in case". If a performance optimization cannot be tested via public API, don't add it (no premature optimization). This includes: unnecessary null checks, defensive try-catch blocks, caching mechanisms without proven need, redundant validation, or any code paths that cannot be triggered through normal usage.
 
 ## Common Development Commands
 
 ### Build
 ```bash
-dotnet build                          # Build the solution
+dotnet build                         # Build the solution
 dotnet build Simpipe.Net/            # Build only the main library
 dotnet build Simpipe.Net.Tests/      # Build only the test project
 ```
@@ -82,18 +81,6 @@ Simpipe.Net is a .NET 9.0 library implementing a pipeline pattern using System.T
 5.  If struggling to find a name, it usually means you don't understand the computation well enough.
 6.  The names are context-dependent - the surrounding code provides type/scope information, leaving the name to clarify the ROLE.
 
-# Interaction
-
-**ALWAYS** start replies with STARTER_CHARACTER + space (default: 🍀)
-Stack emojis when requested, don't replace.
-
-## Core Partnership
-
-- We're friends and colleagues working together.
-- Take me with you on the thinking journey; don't just do the work. We work together to form mental models alongside the code we're writing. It's important that I also understand.
-- **IMPORTANT**: When you finish a significant task, run into a difficulty, or need my help to make a decision, please clearly state it so I'm aware even if I'm not looking at the screen.
-- If you need my attention for decisions, use the ⚠️ emoji.
-
 ## Code Principles
 
 - We prefer simple, clean, maintainable solutions over clever or complex ones, even if the latter are more concise or performant.
@@ -115,22 +102,6 @@ Stack emojis when requested, don't replace.
 ## Test Quality Principles
 
 - We are intolerant of slow tests and tests with timeouts. If a test hangs, it should be deeply investigated and fixed.
-
-## Mutual Support and Proactivity
-
-- Don't flatter me. Be charming and nice, but very honest. Tell me something I need to know even if I don't want to hear it.
-- I'll help you not make mistakes, and you'll help me.
-  * Push back when something seems wrong - don't just agree with mistakes.
-  * Flag unclear but important points before they become problems. Be proactive in letting me know so we can talk about it and avoid the problem.
-  * Call out potential misses.
-  * Ask questions if something is not clear and you need to make a choice. Don't choose randomly if it's important for what we're doing.
-
-## Committer Role
-
-- `!c` means I'm asking you to commit.
-- When I ask you to commit, look at the diff, add all relevant files not yet staged for commit (respect the `.gitignore` file).
-- Use succinct single sentences as a commit message.
-- After committing, show me the list of the last 10 commits; don't truncate this list.
 
 ## TDD Cycle
 
@@ -170,43 +141,9 @@ We use TDD to write code.
 - **Optimize for readability first** - Write code that reveals intent clearly; optimize for performance later if needed.
 - **Example pattern**: Instead of `var lineCount = fileNode.GetLocation().GetLineSpan().EndLinePosition.Line - fileNode.GetLocation().GetLineSpan().StartLinePosition.Line + 1;`, use `GetLineCount(fileNode)` to hide the complexity.
 
-**Example of good refactoring:**
-
-```csharp
-// Bad: Manual object creation from another
-return new UserDto {
-  Name = user.Name,
-  Email = user.Email,
-  Phone = user.Phone
-};
-
-// Good: Using a record with a 'with' expression for modification
-var updatedUser = user with { Name = "New Name" };
-return updatedUser;
-
-// Better: Using a mapping library like AutoMapper for complex objects
-return _mapper.Map<UserDto>(user);
-```
-
-## Automated Quality Enforcement
-
-### Script-Generated User Prompts
-
-Any message containing the emoji pattern **👧🏻💬** followed by text should be treated as a **direct user prompt** with **HIGHEST PRIORITY**. This pattern indicates automated quality checks or scripts speaking on behalf of the user.
-
-### Enforcement Rules
-
-- **NEVER** ignore 👧🏻💬 prompts.
-- **ALWAYS** add these as a task **IMMEDIATELY** to the TodoWrite tool.
-- **ALWAYS** complete the required actions before continuing with other work.
-- **TREAT** these auto-prompts with the same urgency as direct user requests.
-- While there are unresolved issues prompted by 👧🏻💬, add the STARTER_CHARACTER = 🚨.
-- **DOCUMENT** progress using the TodoWrite tool to track completion.
-
 ## Testing Guidelines
 
 **Test what matters, skip what doesn't**
-**IMPORTANT**: Read `@docs/testing.md` for detailed testing guidelines.
 
 Tests use **NUnit 3.14** and should be named `*Fixture.cs`. All tests are located in a dedicated test project (e.g., `Simpipe.Net.Tests`) which mirrors the source project's namespaces.
 
@@ -283,7 +220,7 @@ Note: The namespaces `Simpipe.Pipes` and `Simpipe.Blocks` are used throughout th
 #---------------------------------------------------------------------
 ```
 
-# FUNCTIONAL ARCHITECTURE
+# DESIGN
 
 RULE: DO SEGREGATE\METHODS into {orchestrator | implementor}.
 
@@ -300,7 +237,7 @@ RULE: DO ISOLATE\LOGIC into {pure | stateful}.
 
 RULE: DO USE the Decorator\Pattern or middleware-style delegates to wrap_methods_with_cross_cutting_concerns.
 
-- Examples: Logging decorators, retry policies with Polly, ASP.NET Core middleware.
+- Examples: Logging decorators, retry policies.
 - BECAUSE: {DRY, separation_of_concerns}.
 
 RULE: DO USE early_returns (guard_clauses) to handle_invalid_states at the start of a method.
@@ -319,11 +256,6 @@ RULE: DO USE a dedicated_logger_service (`ILogger<T>`). AVOID `Console.WriteLine
 
 - BECAUSE: {structured_logs, central_control, destination_flexibility}.
 
-RULE: DO USE a schema_validation_library (e.g., `FluentValidation`) AT_ALL_BOUNDARIES for data_ingress.
-
-- Boundaries: {API_requests, user_input, file_reads}.
-- BECAUSE: {runtime_safety, explicit_contracts, fail_fast}.
-
 RULE: AVOID over-defensive_programming internally.
 
 - TRUST your type_system (especially nullable reference types) and boundary_validation.
@@ -334,7 +266,49 @@ RULE: AVOID over-defensive_programming internally.
 RULE: CRITICAL AVOID comments; DO WRITE self_documenting_code.
 
 - INSTEAD_OF: Commenting `// check if user is valid`, DO create a method `bool IsValid(User user)`.
+- NEVER add comments that simply reiterate what is obvious from the code.
 - BECAUSE: {comments_rot, encourages_clearer_code}.
+
+RULE: DO NOT add XML doc comments for internal APIs.
+
+- ONLY document public APIs that are part of the user-facing surface.
+- NEVER add XML doc comments for test project files/classes as it's not a public API.
+- BECAUSE: {reduces_noise, focuses_documentation_effort_on_user_value}.
+
+RULE: DO NOT add brackets for simple one-line if statements.
+
+```csharp
+// BAD
+if (result)
+{
+    return string.Empty;
+}
+
+// GOOD
+if (result)
+    return string.Empty;
+```
+- BECAUSE: {reduces_visual_noise, improves_readability}.
+
+RULE: DO NOT add default `private` modifier.
+
+- The `private` modifier is implicit for class members.
+- BECAUSE: {reduces_verbosity, cleaner_code}.
+
+RULE: PREFER using `var` instead of specifying exact type for variable declarations.
+
+```csharp
+// BAD
+bool left = false;
+bool right = true;
+string message = "hello";
+
+// GOOD  
+var left = false;
+var right = true;
+var message = "hello";
+```
+- BECAUSE: {reduces_verbosity, improves_readability, lets_compiler_infer_obvious_types}.
 
 RULE: PREFER strongly-typed `enum`s or the "smart enum" pattern OVER raw strings or integers.
 
@@ -380,15 +354,29 @@ async\method: Suffix with `Async` =\> `GetDataAsync()`
 
 ### Rules:
 
-- Figure out the best matching category section or create a new one if needed.
+- The `learnings.md` file is organized by topic (e.g., "Project & Solution Structure", "MSBuild Source Rewriter").
+- Add new learnings as bullet points to the most relevant existing topic section.
+- If no relevant topic exists, create a new `## Topic Name` section.
 - Keep entries extremely concise - one line per insight.
 - Only log unique, non-obvious information.
 - Focus on future value for similar tasks.
 - Subagents MUST update this file before reporting success.
 
-# CODING STYLE MEMORIES
+# CRITICAL MEMORIES
 
 - NEVER use underscores for private/internal members
+- NEVER create coverage reports on top level. Always specify subfolder under ./TestResults dir
+
+# BUG HUNTING METHODOLOGY
+
+### Systematic Bug Hunt Algorithm:
+1. **Fix the bug**: Add failing test first and then fix the bug
+2. **Think other places where similar bug could happen**: Add failing tests and fix the bug
+3. **Check test coverage**: Run tests with coverage and verify branch coverage if the failing test was a missing test
+
+### Test Coverage Gaps to Watch:
+- Only testing negative scenarios (failures/errors) without positive scenarios (success) or other way around
+- Missing tests for the "happy path" where operations should succeed
 
 # Documentation Standards
 
@@ -414,6 +402,7 @@ async\method: Suffix with `Async` =\> `GetDataAsync()`
 - **IMPORTANT**: Document threading and concurrency behavior
 - Provide realistic, copy-pasteable examples
 - **CRITICAL**: Explain the "why" not just the "what"
+- **CRITICAL**: Always write XML doc comments from the user's perspective, not implementation details
 - Cover common pitfalls and best practices
 
 - ## Performance Documentation Template
