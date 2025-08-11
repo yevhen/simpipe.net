@@ -36,7 +36,7 @@ Use Simpipe.Net when you need:
 - ✅ Conditional routing between pipes
 - ✅ Work-in-progress limiting
 - ✅ Performance monitoring (input/output/working counts)
-- ✅ Cancellation token support
+- ✅ Graceful shutdown and cancellation support
 
 ## Installation
 
@@ -51,15 +51,10 @@ Here's a simple example that demonstrates basic pipeline construction:
 ```csharp
 using Simpipe.Pipes;
 
-// Create a pipeline for tweet processing
-var pipeline = new Pipeline<Tweet>();
-
 // Add sentiment analysis pipe
 var sentimentPipe = Pipe<Tweet>
     .Action(tweet => tweet.Sentiment = AnalyzeSentiment(tweet.Text))
-    .Id("sentiment-analyzer")
-    .ToPipe();
-pipeline.Add(sentimentPipe);
+    .Id("sentiment-analyzer");
 
 // Add batch pipe for Elasticsearch indexing
 var indexPipe = Pipe<Tweet>
@@ -67,14 +62,18 @@ var indexPipe = Pipe<Tweet>
         await ElasticsearchClient.BulkIndex(tweets);
         Console.WriteLine($"Indexed {tweets.Length} tweets");
     })
-    .Id("elasticsearch-indexer")
-    .ToPipe();
-pipeline.Add(indexPipe);
+    .Id("elasticsearch-indexer");
+
+// Create a pipeline for tweet processing
+var pipeline = new Pipeline<Tweet> 
+{
+    sentimentPipe, 
+    indexPipe
+};
 
 // Process tweets
 await pipeline.Send(new Tweet { Text = "Love this product! #awesome" });
 await pipeline.Send(new Tweet { Text = "Great customer service @support" });
-// ... more tweets
 
 // Complete the pipeline
 await pipeline.Complete();
@@ -96,7 +95,7 @@ A Pipeline is a container that:
 - Manages a sequence of connected pipes
 - Handles automatic linking between pipes
 - Provides completion tracking for the entire flow
-- Allows sending items to specific pipes by ID
+- Allows sending items to specific pipes by ID (useful when resuming processing)
 
 ### Blocks
 
@@ -161,39 +160,41 @@ var pipe = Pipe<Tweet>
 Controls total work-in-progress across a pipeline, providing back-pressure to producers.
 
 ```csharp
-// Create pipeline with consistent capacity
+// Create pipeline with consistent capacity for each block (block.capacity == maxWork)
 var pipeline = new Pipeline<Tweet>();
-pipeline.Add(Pipe<Tweet>
-    .Action(async tweet => await ValidateTweet(tweet))
-    .BoundedCapacity(50)  // Same as maxWork
-    .Id("validator")
-    .ToPipe());
-pipeline.Add(Pipe<Tweet>
-    .Action(async tweet => await EnrichTweet(tweet))
-    .BoundedCapacity(50)  // Same as maxWork
-    .Id("enricher")
-    .ToPipe());
 
 // PipelineLimiter controls total work-in-progress
 var limiter = new PipelineLimiter<Tweet>(
     maxWork: 50, // Only 50 tweets in flight
-    dispatch: async tweet => {
-        await pipeline.Send(tweet);
-        // Process through entire pipeline
-        await limiter.TrackDone(tweet);
-    });
+    dispatch: pipeline.Send);
+
+var validator = Pipe<Tweet>
+    .Action(async tweet => await ValidateTweet(tweet))
+    .BoundedCapacity(50)  // Same as maxWork
+    .Id("validator");
+
+ var enricher = Pipe<Tweet>
+    .Action(async tweet => await EnrichTweet(tweet))
+    .BoundedCapacity(50)  // Same as maxWork
+    .Id("enricher");
+
+ var done = Pipe<Tweet>
+     .Action(limiter.TrackDone); // signal limiter item completed
+ 
+ pipeline.Add(validator);
+ pipeline.Add(enricher);
+ pipeline.Add(done);
 
 // Poll from SQS queue with automatic back-pressure
 while (!cancellationToken.IsCancellationRequested)
 {
     var tweets = await SQSClient.ReceiveMessages(queueUrl);
     foreach (var tweet in tweets)
-    {
         await limiter.Send(tweet); // Blocks if 50 tweets in flight
-    }
 }
 
 await limiter.Complete();
+await pipeline.Complete();
 ```
 
 ### ForkPipe (Fork-Join Parallelism)
@@ -213,8 +214,12 @@ var languageBlock = Parallel<Tweet>
     .DegreeOfParallelism(2);
 
 var entitiesBlock = Parallel<Tweet>
-    .Action(async tweet => tweet.Entities = ExtractEntities(tweet.Text))
+    .Batch(100, async tweets => Apply(tweets, ExtractEntities(tweet.Text))
     .Id("entities");
+
+var saveToDb = Pipe<Tweet>
+    .Batch(500, async tweets => await db.Store(tweets))
+    .Id("store");
 
 // Create fork-join pipe
 var forkPipe = Pipe<Tweet>
@@ -223,32 +228,15 @@ var forkPipe = Pipe<Tweet>
     .Id("enrichment-fork")
     .ToPipe();
 
-// All three enrichments run in parallel
-await forkPipe.Send(tweet);
+var pipeline = new Pipeline<Tweet>
+{
+    forkPipe,
+    saveToDb
+};
 
-// The next pipe receives the tweet only after ALL parallel blocks complete
-var nextPipe = Pipe<Tweet>.Action(SaveToDatabase).ToPipe();
-forkPipe.LinkNext(nextPipe);
-```
-
-#### Parallel Batch Processing
-
-You can also use batch operations within fork-join:
-
-```csharp
-var batchAnalytics = Parallel<Tweet>
-    .Batch(100, async tweets => await BigQueryClient.InsertRows("analytics", tweets))
-    .Id("batch-analytics")
-    .BatchTriggerPeriod(TimeSpan.FromSeconds(5));
-
-var batchMetrics = Parallel<Tweet>
-    .Batch(50, async tweets => await UpdateMetrics(tweets))
-    .Id("batch-metrics");
-
-var forkPipe = Pipe<Tweet>
-    .Fork(batchAnalytics, batchMetrics)
-    .Id("analytics-processor")
-    .ToPipe();
+// All three enrichments run in parallel and saveToDb pipe receives 
+// the tweet only after ALL parallel blocks complete
+await pipeline.Send(tweet);
 ```
 
 ## Advanced Usage
