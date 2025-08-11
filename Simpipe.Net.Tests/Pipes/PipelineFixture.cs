@@ -191,6 +191,49 @@ public class PipelineFixture
 
         Assert.That(nextProcessed.Single(), Is.EqualTo(42));
     }
+
+    [Test]
+    public async Task Integration_test()
+    {
+        var sentimentPipe = Pipe<Tweet>
+            .Action(tweet => tweet.Sentiment =
+                tweet.Text.Contains("Love") ? 1 : tweet.Text.Contains("Hate") ? -1 : 0)
+            .Id("sentiment-analyzer");
+
+        var indexPipe = Pipe<Tweet>
+            .Batch(100, async tweets => {
+                await Task.Delay(100);
+                foreach (var tweet in tweets) tweet.Indexed = true;
+            })
+            .Id("elasticsearch-indexer");
+
+        var pipeline = new Pipeline<Tweet>
+        {
+            sentimentPipe,
+            indexPipe
+        };
+
+        var positiveTweet = new Tweet { Text = "Love this product! #awesome" };
+        var negativeTweet = new Tweet { Text = "Hate customer service @support" };
+
+        await pipeline.Send(positiveTweet);
+        await pipeline.Send(negativeTweet);
+
+        await pipeline.Complete();
+
+        Assert.That(positiveTweet.Sentiment, Is.EqualTo(1));
+        Assert.That(positiveTweet.Indexed, Is.True);
+
+        Assert.That(negativeTweet.Sentiment, Is.EqualTo(-1));
+        Assert.That(negativeTweet.Indexed, Is.True);
+    }
+
+    public class Tweet
+    {
+        public int Sentiment { get; set; }
+        public required string Text { get; set; }
+        public bool Indexed { get; set; }
+    }
 }
 
 internal static partial class TestingExtensions
