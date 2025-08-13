@@ -7,7 +7,7 @@ A pytest inspired assertion library for .NET with no special syntax.
 SharpAssert provides rich assertion diagnostics by automatically transforming your assertion expressions at compile time using MSBuild source rewriting, giving you detailed failure messages with powerful expression analysis.
 
 ```csharp
-using static Sharp;
+using static SharpAssert.Sharp;
 
 var items = new[] { 1, 2, 3 };
 var target = 4;
@@ -30,7 +30,7 @@ dotnet add package SharpAssert
 ### 2. Use SharpAssert in Your Tests
 
 ```csharp
-using static Sharp;
+using static SharpAssert.Sharp;
 
 [Test]
 public void Should_find_matching_item()
@@ -55,7 +55,7 @@ Assert(user.IsActive, $"User {user.Name} should be active for this operation");
 ### Asserting exceptions
 
 ```csharp
-using static Sharp;
+using static SharpAssert.Sharp;
 
 [Test]
 public async Task Throws_catch_exceptions_in_exception_result()
