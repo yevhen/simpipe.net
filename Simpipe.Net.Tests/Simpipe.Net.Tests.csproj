@@ -17,7 +17,7 @@
         <PackageReference Include="NUnit" Version="3.14.0" />
         <PackageReference Include="NUnit.Analyzers" Version="4.3.0"/>
         <PackageReference Include="NUnit3TestAdapter" Version="4.6.0"/>
-        <PackageReference Include="SharpAssert" Version="1.0.4" />
+        <PackageReference Include="SharpAssert" Version="1.0.6" />
     </ItemGroup>
 
     <ItemGroup>
