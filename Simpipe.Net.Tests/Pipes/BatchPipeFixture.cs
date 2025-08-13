@@ -1,3 +1,5 @@
+using static SharpAssert.Sharp;
+
 namespace Simpipe.Pipes;
 
 [TestFixture]
@@ -17,11 +19,11 @@ public class BatchPipeFixture
 
         await Complete("foo");
 
-        Assert.True(executed);
+        Assert(executed);
     }
 
     [Test]
-    public void Awaits_completion()
+    public async Task Awaits_completion()
     {
         Setup(async _ =>
         {
@@ -29,7 +31,7 @@ public class BatchPipeFixture
             throw new ArgumentException();
         });
 
-        Assert.ThrowsAsync<ArgumentException>(() => Complete("boom"));
+        Assert(await ThrowsAsync<ArgumentException>(() => Complete("boom")));
     }
 
     [Test]
@@ -47,7 +49,7 @@ public class BatchPipeFixture
         await Complete("foo");
         SpinWait.SpinUntil(() => nextReceived.Count > 0, TimeSpan.FromSeconds(2));
 
-        Assert.That(nextReceived, Does.Contain("foo"));
+        Assert(nextReceived.Contains("foo"));
     }
 
     [Test]
@@ -62,9 +64,9 @@ public class BatchPipeFixture
 
         await Complete(item1, item2);
 
-        Assert.That(items.Count, Is.EqualTo(2));
-        Assert.That(items[0], Is.EqualTo(item1));
-        Assert.That(items[1], Is.EqualTo(item2));
+        Assert(items.Count == 2);
+        Assert(items[0] == item1);
+        Assert(items[1] == item2);
     }
 
     [Test]
@@ -83,7 +85,7 @@ public class BatchPipeFixture
         await Send("foo");
         await executed.Task;
 
-        Assert.That(items.Count, Is.EqualTo(1));
+        Assert(items.Count == 1);
         await Complete();
     }
 
@@ -95,9 +97,9 @@ public class BatchPipeFixture
 
         await Complete("foo", "bar", "buzz");
 
-        Assert.That(items.Count, Is.EqualTo(2));
-        Assert.That(items[0].Length, Is.EqualTo(2));
-        Assert.That(items[1].Length, Is.EqualTo(1));
+        Assert(items.Count == 2);
+        Assert(items[0].Length == 2);
+        Assert(items[1].Length == 1);
     }
 
     async Task Complete(params string[] items)

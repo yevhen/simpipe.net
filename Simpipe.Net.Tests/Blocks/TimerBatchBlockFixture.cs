@@ -1,5 +1,7 @@
 namespace Simpipe.Blocks;
 
+using static SharpAssert.Sharp;
+
 [TestFixture]
 public class TimerBatchBlockFixture
 {
@@ -23,8 +25,8 @@ public class TimerBatchBlockFixture
         
         await Task.Delay(150);
 
-        Assert.That(batches.Count, Is.EqualTo(1)); 
-        Assert.That(batches[0], Is.EqualTo(new[] {1, 2}));
+        Assert(batches.Count == 1); 
+        Assert(batches[0].SequenceEqual(new[] {1, 2}));
 
         await batchBlock.Complete();
     }
@@ -48,10 +50,10 @@ public class TimerBatchBlockFixture
             await batchBlock.Send(i);
         await batchBlock.Complete();
 
-        Assert.That(batches.Count, Is.EqualTo(3));
-        Assert.That(batches[0], Is.EqualTo(new[] {1, 2, 3}));
-        Assert.That(batches[1], Is.EqualTo(new[] {4, 5, 6})); 
-        Assert.That(batches[2], Is.EqualTo(new[] {7}));
+        Assert(batches.Count == 3);
+        Assert(batches[0].SequenceEqual(new[] {1, 2, 3}));
+        Assert(batches[1].SequenceEqual(new[] {4, 5, 6})); 
+        Assert(batches[2].SequenceEqual(new[] {7}));
     }
 
     [Test]
@@ -75,12 +77,12 @@ public class TimerBatchBlockFixture
         
         await Task.Delay(750);
 
-        Assert.That(batches.Count, Is.EqualTo(1));
-        Assert.That(batches[0], Is.EqualTo(new[] {1, 2}));
+        Assert(batches.Count == 1);
+        Assert(batches[0].SequenceEqual(new[] {1, 2}));
 
         await batchBlock.Complete();
         
-        Assert.That(batches.Count, Is.EqualTo(2));
-        Assert.That(batches[1], Is.EqualTo(new[] {3}));
+        Assert(batches.Count == 2);
+        Assert(batches[1].SequenceEqual(new[] {3}));
     }
 }

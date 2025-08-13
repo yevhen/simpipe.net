@@ -1,3 +1,6 @@
+using System.Linq;
+using static SharpAssert.Sharp;
+
 namespace Simpipe.Pipes;
 
 [TestFixture]
@@ -15,9 +18,9 @@ public class PipelineFixture
         pipeline.Add(pipe1);
 
         var pipe2 = PipeMock<int>.Create(id: "1");
-        var ex = Assert.Throws<Exception>(() => pipeline.Add(pipe2));
 
-        Assert.That(ex!.Message, Is.EqualTo("The pipe with id 1 already exists"));
+        Assert(Throws<Exception>(() => pipeline.Add(pipe2))
+            .Message == "The pipe with id 1 already exists");
     }
 
     [Test]
@@ -32,7 +35,7 @@ public class PipelineFixture
 
         await pipeline.Send(42);
 
-        Assert.That(firstProcessed.Single(), Is.EqualTo(42));
+        Assert(firstProcessed.Single() == 42);
     }
 
     [Test]
@@ -51,8 +54,8 @@ public class PipelineFixture
 
         await pipeline.Send(42, "1");
 
-        Assert.That(firstProcessed.Single(), Is.EqualTo(42));
-        Assert.That(secondProcessed, Is.Empty);
+        Assert(firstProcessed.Single() == 42);
+        Assert(!secondProcessed.Any());
     }
 
     [Test]
@@ -71,12 +74,12 @@ public class PipelineFixture
 
         await pipeline.Send(42, "2");
 
-        Assert.That(firstProcessed, Is.Empty);
-        Assert.That(secondProcessed.Single(), Is.EqualTo(42));
+        Assert(!firstProcessed.Any());
+        Assert(secondProcessed.Single() == 42);
     }
 
     [Test]
-    public void Throws_when_starting_from_invalid_pipe_id()
+    public async Task Throws_when_starting_from_invalid_pipe_id()
     {
         var firstProcessed = new List<int>();
         var secondProcessed = new List<int>();
@@ -87,13 +90,11 @@ public class PipelineFixture
         pipeline.Add(first);
         pipeline.Add(second);
 
-        var ex = Assert.ThrowsAsync<PipeNotFoundException>(
-            async () => await pipeline.Send(42, "boom"));
+        var ex = await ThrowsAsync<PipeNotFoundException>(() => pipeline.Send(42, "boom"));
+        Assert(ex.Message == "The pipe with id 'boom' does not exist");
 
-        Assert.That(ex!.Message, Is.EqualTo("The pipe with id 'boom' does not exist"));
-
-        Assert.That(firstProcessed, Is.Empty);
-        Assert.That(secondProcessed, Is.Empty);
+        Assert(firstProcessed.Count == 0);
+        Assert(secondProcessed.Count == 0);
     }
 
     [Test]
@@ -119,13 +120,13 @@ public class PipelineFixture
 
         // Test the default route behavior: item 1 should route to fail pipe
         await pipeline.Send(1, "1");
-        Assert.That(firstProcessed.Single(), Is.EqualTo(1));
-        Assert.That(failProcessed.Single(), Is.EqualTo(1));
+        Assert(firstProcessed.Single() == 1);
+        Assert(failProcessed.Single() == 1);
 
         // Test non-matching route: item 2 should not route anywhere (stays in originating pipe only)
         await pipeline.Send(2, "2");
-        Assert.That(secondProcessed.Single(), Is.EqualTo(2));
-        Assert.That(failProcessed.Count, Is.EqualTo(1)); // No new items
+        Assert(secondProcessed.Single() == 2);
+        Assert(failProcessed.Count == 1); // No new items
     }
 
     [Test]
@@ -139,7 +140,7 @@ public class PipelineFixture
         pipeline.Add(second);
         pipeline.Add(third);
 
-        Assert.That(pipeline.ToArray(), Is.EqualTo(new[] { first, second, third }));
+        Assert(pipeline.ToArray().SequenceEqual(new[] { first, second, third }));
     }
 
     [Test]
@@ -152,29 +153,29 @@ public class PipelineFixture
         pipeline.Add(second);
 
         var completion = pipeline.Complete();
-        Assert.That(completion.IsCompleted, Is.False);
-        Assert.That(pipeline.Completion.IsCompleted, Is.False);
+        Assert(completion.IsCompleted == false);
+        Assert(pipeline.Completion.IsCompleted == false);
 
         first.AsBlockMock().SetComplete();
         await Task.Delay(10);
-        Assert.That(completion.IsCompleted, Is.False);
-        Assert.That(pipeline.Completion.IsCompleted, Is.False);
+        Assert(completion.IsCompleted == false);
+        Assert(pipeline.Completion.IsCompleted == false);
 
         second.AsBlockMock().SetComplete();
         await Task.Delay(10);
         await completion;
 
-        Assert.That(completion.IsCompleted, Is.True);
-        Assert.That(pipeline.Completion.IsCompleted, Is.True);
+        Assert(completion.IsCompleted == true);
+        Assert(pipeline.Completion.IsCompleted == true);
     }
 
     [Test]
-    public void Throws_on_SendNext_when_source_id_does_not_exist()
+    public async Task Throws_on_SendNext_when_source_id_does_not_exist()
     {
         var pipe = PipeMock<int>.Create(id: "1");
         pipeline.Add(pipe);
 
-        Assert.ThrowsAsync<Exception>(() => pipeline.SendNext(42, "2"));
+        Assert(await ThrowsAsync<Exception>(() => pipeline.SendNext(42, "2")));
     }
 
     [Test]
@@ -189,7 +190,7 @@ public class PipelineFixture
 
         await pipeline.SendNext(42, "1");
 
-        Assert.That(nextProcessed.Single(), Is.EqualTo(42));
+        Assert(nextProcessed.Single() == 42);
     }
 
     [Test]
@@ -221,11 +222,11 @@ public class PipelineFixture
 
         await pipeline.Complete();
 
-        Assert.That(positiveTweet.Sentiment, Is.EqualTo(1));
-        Assert.That(positiveTweet.Indexed, Is.True);
+        Assert(positiveTweet.Sentiment == 1);
+        Assert(positiveTweet.Indexed == true);
 
-        Assert.That(negativeTweet.Sentiment, Is.EqualTo(-1));
-        Assert.That(negativeTweet.Indexed, Is.True);
+        Assert(negativeTweet.Sentiment == -1);
+        Assert(negativeTweet.Indexed == true);
     }
 
     public class Tweet

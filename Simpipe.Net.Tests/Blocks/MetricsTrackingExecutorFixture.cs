@@ -1,3 +1,5 @@
+using static SharpAssert.Sharp;
+
 namespace Simpipe.Blocks;
 
 public class MetricsTrackingExecutorFixture
@@ -8,7 +10,7 @@ public class MetricsTrackingExecutorFixture
     public void Has_input_count_zero_on_creation()
     {
         var executor = new MetricsTrackingExecutor<int>();
-        Assert.That(executor.InputCount, Is.EqualTo(0));
+        Assert(executor.InputCount == 0);
     }
 
     [Test]
@@ -18,7 +20,7 @@ public class MetricsTrackingExecutorFixture
 
         await executor.ExecuteSend(Item, BlockItemAction<int>.Noop);
 
-        Assert.That(executor.InputCount, Is.EqualTo(3));
+        Assert(executor.InputCount == 3);
     }
 
     [Test]
@@ -29,14 +31,14 @@ public class MetricsTrackingExecutorFixture
         await executor.ExecuteSend(Item, BlockItemAction<int>.Noop);
         await executor.ExecuteAction(Item, BlockItemAction<int>.Noop);
 
-        Assert.That(executor.InputCount, Is.EqualTo(0));
+        Assert(executor.InputCount == 0);
     }
 
     [Test]
     public void Has_working_count_zero_on_creation()
     {
         var executor = new MetricsTrackingExecutor<int>();
-        Assert.That(executor.WorkingCount, Is.EqualTo(0));
+        Assert(executor.WorkingCount == 0);
     }
 
     [Test]
@@ -47,7 +49,7 @@ public class MetricsTrackingExecutorFixture
         var workingCount = 0;
         await executor.ExecuteAction(Item, BlockItemAction<int>.BatchSync(_ => workingCount = executor.WorkingCount));
 
-        Assert.That(workingCount, Is.EqualTo(3));
+        Assert(workingCount == 3);
     }
 
     [Test]
@@ -57,14 +59,14 @@ public class MetricsTrackingExecutorFixture
 
         await executor.ExecuteAction(Item, BlockItemAction<int>.Noop);
 
-        Assert.That(executor.WorkingCount, Is.EqualTo(0));
+        Assert(executor.WorkingCount == 0);
     }
 
     [Test]
     public void Has_output_count_zero_on_creation()
     {
         var executor = new MetricsTrackingExecutor<int>();
-        Assert.That(executor.OutputCount, Is.EqualTo(0));
+        Assert(executor.OutputCount == 0);
     }
 
     [Test]
@@ -75,7 +77,7 @@ public class MetricsTrackingExecutorFixture
         var outputCount = 0;
         await executor.ExecuteDone(Item, BlockItemAction<int>.BatchSync(_ => outputCount = executor.OutputCount));
 
-        Assert.That(outputCount, Is.EqualTo(3));
+        Assert(outputCount == 3);
     }
 
     [Test]
@@ -85,6 +87,6 @@ public class MetricsTrackingExecutorFixture
 
         await executor.ExecuteDone(Item, BlockItemAction<int>.Noop);
 
-        Assert.That(executor.OutputCount, Is.EqualTo(0));
+        Assert(executor.OutputCount == 0);
     }
 }
