@@ -27,8 +27,8 @@ public class BatchActionBlockFixture
 
         await batchActionBlock.Complete();
 
-        Assert(batch1.SequenceEqual(["i1", "i2"]));
-        Assert(batch2.SequenceEqual(["i3", "i4"]));
+        Assert(batch1.SequenceEqual(new[] {"i1", "i2"}));
+        Assert(batch2.SequenceEqual(new[] {"i3", "i4"}));
     }
 
     [Test]
@@ -56,7 +56,7 @@ public class BatchActionBlockFixture
         Assert(await ThrowsAsync<ArgumentException>(() => batchActionBlock.Complete()));
         
         Assert(processedBatches.Count == 1, "Only the first batch should be processed before the exception");
-        Assert(processedBatches[0].SequenceEqual(["item1", "item2"]));
+        Assert(processedBatches[0].SequenceEqual(new[] {"item1", "item2"}));
 
         Assert(!processedBatches.Any(b => b.Contains("error")),
             "The second batch containing \"error\" should not be in the processed list");
