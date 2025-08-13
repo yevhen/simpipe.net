@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using static SharpAssert.Sharp;
 
 namespace Simpipe.Pipes;
 
@@ -44,13 +45,13 @@ public class PipeFixture
         await Send(item);
 
         SpinWait.SpinUntil(() => pipeExecuted, TimeSpan.FromSeconds(3));
-        Assert.That(item.Data, Is.EqualTo("foo"));
-        Assert.False(nextPipeExecuted);
+        Assert(item.Data == "foo");
+        Assert(!nextPipeExecuted);
 
         blocker.SetResult();
         SpinWait.SpinUntil(() => nextPipeExecuted, TimeSpan.FromSeconds(2));
 
-        Assert.That(item.Data, Is.EqualTo("foobar"));
+        Assert(item.Data == "foobar");
     }
 
     [Test]
@@ -62,12 +63,12 @@ public class PipeFixture
         SetupNextAsync(async _ => await blocker.Task);
 
         var task = Complete(CreateItem());
-        Assert.False(task.IsCompleted);
+        Assert(!task.IsCompleted);
 
         blocker.SetResult();
         await task;
 
-        Assert.True(task.IsCompleted);
+        Assert(task.IsCompleted);
     }
 
     [Test]
@@ -82,16 +83,16 @@ public class PipeFixture
         var item = CreateItem();
         await mainPipe.SendNext(item);
 
-        Assert.That(mainProcessed, Is.Empty);
-        Assert.That(nextProcessed.Single(), Is.SameAs(item));
+        Assert(mainProcessed.Count == 0);
+        Assert(ReferenceEquals(nextProcessed.Single(), item));
     }
 
     [Test]
-    public void Sends_to_null_if_no_next_on_SendNext()
+    public async Task Sends_to_null_if_no_next_on_SendNext()
     {
         var testPipe = PipeMock<TestItem>.Create();
 
-        Assert.DoesNotThrowAsync(() => testPipe.SendNext(CreateItem()));
+        await testPipe.SendNext(CreateItem());
     }
 
     [Test]
@@ -109,8 +110,8 @@ public class PipeFixture
         var item = CreateItem();
         await mainPipe.Send(item);
 
-        Assert.That(nextProcessed, Is.Empty);
-        Assert.That(routedProcessed.Single(), Is.SameAs(item));
+        Assert(nextProcessed.Count == 0);
+        Assert(ReferenceEquals(routedProcessed.Single(), item));
     }
 
     [Test]
@@ -124,7 +125,7 @@ public class PipeFixture
         var item = CreateItem();
         await mainPipe.Send(item);
 
-        Assert.That(nextProcessed.Single(), Is.SameAs(item));
+        Assert(ReferenceEquals(nextProcessed.Single(), item));
     }
 
     [Test]
@@ -141,8 +142,8 @@ public class PipeFixture
         var item = CreateItem();
         await pipe.Send(item);
 
-        Assert.That(routedReceived, Has.Count.EqualTo(1));
-        Assert.That(routedReceived.Single(), Is.SameAs(item));
+        Assert(routedReceived.Count == 1);
+        Assert(ReferenceEquals(routedReceived.Single(), item));
     }
 
     [Test]
@@ -160,8 +161,8 @@ public class PipeFixture
         var item = CreateItem();
         await pipe.Send(item);
 
-        Assert.That(routed1Received.Single(), Is.SameAs(item));
-        Assert.That(routed2Received, Is.Empty);
+        Assert(ReferenceEquals(routed1Received.Single(), item));
+        Assert(routed2Received.Count == 0);
     }
 
     [Test]
@@ -179,8 +180,8 @@ public class PipeFixture
         var item = CreateItem("1");
         await mainPipe.Send(item);
 
-        Assert.That(mainProcessed, Has.Count.EqualTo(1));
-        Assert.That(nextProcessed, Has.Count.EqualTo(1));
+        Assert(mainProcessed.Count == 1);
+        Assert(nextProcessed.Count == 1);
     }
 
     [Test]
@@ -198,8 +199,8 @@ public class PipeFixture
         var item = CreateItem("2");             // Send "2" - doesn't match filter
         await mainPipe.Send(item);
 
-        Assert.That(mainProcessed, Is.Empty);  // Action skipped
-        Assert.That(nextProcessed, Has.Count.EqualTo(1));  // Item still forwarded
+        Assert(mainProcessed.Count == 0);  // Action skipped
+        Assert(nextProcessed.Count == 1);  // Item still forwarded
     }
 
     [Test]
@@ -223,9 +224,9 @@ public class PipeFixture
         var item = CreateItem("2");
         await mainPipe.Send(item);
 
-        Assert.That(mainProcessed, Is.Empty);  // Filtered out
-        Assert.That(nextProcessed, Is.Empty);  // Filtered out
-        Assert.That(endProcessed, Has.Count.EqualTo(1));   // Final destination
+        Assert(mainProcessed.Count == 0);  // Filtered out
+        Assert(nextProcessed.Count == 0);  // Filtered out
+        Assert(endProcessed.Count == 1);   // Final destination
     }
 
     [Test]
@@ -247,9 +248,9 @@ public class PipeFixture
         var item = CreateItem("2");
         await mainPipe.Send(item);
 
-        Assert.That(mainProcessed, Has.Count.EqualTo(1));  // Main pipe executed (no filter)
-        Assert.That(nextProcessed, Is.Empty);              // Next pipe filtered out
-        Assert.That(endProcessed, Has.Count.EqualTo(1));   // End pipe received cascaded item
+        Assert(mainProcessed.Count == 1);  // Main pipe executed (no filter)
+        Assert(nextProcessed.Count == 0);              // Next pipe filtered out
+        Assert(endProcessed.Count == 1);   // End pipe received cascaded item
     }
 
     [Test]
@@ -273,9 +274,9 @@ public class PipeFixture
         var item = CreateItem("2");
         await mainPipe.Send(item);
 
-        Assert.That(mainProcessed, Is.Empty);
-        Assert.That(nextProcessed, Is.Empty);
-        Assert.That(routedProcessed, Is.Empty, "Should not use route if didn't pass through the block");
+        Assert(mainProcessed.Count == 0);
+        Assert(nextProcessed.Count == 0);
+        Assert(routedProcessed.Count == 0, "Should not use route if didn't pass through the block");
     }
 
     [Test]
@@ -301,7 +302,7 @@ public class PipeFixture
 
         await Complete();
 
-        Assert.False(nextPipeExecuted);
+        Assert(!nextPipeExecuted);
     }
 
     [Test]
@@ -343,8 +344,8 @@ public class PipeFixture
         WaitCompletion(p1);
         WaitCompletion(p2);
 
-        Assert.That(received1, Is.EqualTo(items));
-        Assert.That(received2, Is.EqualTo(items));
+        Assert(received1.SequenceEqual(items));
+        Assert(received2.SequenceEqual(items));
 
         async Task SendItems()
         {
