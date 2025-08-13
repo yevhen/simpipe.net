@@ -73,16 +73,12 @@ public async Task Throws_catch_exceptions_in_exception_result()
 
     Assert(Throws<ArgumentException>(()=> 
         new ArgumentException("bar")).Message.Contains("bar")); // shortcut form to assert on exception Message
+    
+    // async version
+    Assert(await ThrowsAsync<ArgumentException>(async ()=> 
+        await Task.Run(() => throw ArgumentException("async")))); // shortcut form to assert on exception Message
+ 
 }
-```
-
-
-
-### Async-Safe Usage
-
-```csharp
-// Works with async expressions
-Assert(await GetBoolAsync()); // Rewritten to provide detailed analysis
 ```
 
 ## Architecture
@@ -100,9 +96,6 @@ SharpAssert is built on modern .NET technologies:
 SharpAssert includes PowerAssert as an intelligent fallback mechanism. 
 When SharpAssert encounters expressions it doesn't yet fully support, it automatically delegates to PowerAssert to ensure you always get meaningful diagnostics. 
 This happens transparently - you'll still get detailed error messages regardless of the underlying engine.
-
-**Note:** Async/await and dynamic expressions currently use basic diagnostics via `CallerArgumentExpression`. 
-Full support for these features is planned for future releases.
 
 To force PowerAssert for all assertions (useful for comparison or debugging):
 
