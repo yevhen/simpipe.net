@@ -1,3 +1,5 @@
+using static SharpAssert.Sharp;
+
 namespace Simpipe.Pipes;
 
 [TestFixture]
@@ -17,11 +19,11 @@ public class ActionPipeFixture
 
         await Complete(42);
 
-        Assert.True(executed);
+        Assert(executed);
     }
 
     [Test]
-    public void Awaits_completion()
+    public async Task Awaits_completion()
     {
         Setup(async _ =>
         {
@@ -29,7 +31,7 @@ public class ActionPipeFixture
             throw new ArgumentException();
         });
 
-        Assert.ThrowsAsync<ArgumentException>(() => Complete(42));
+        Assert(await ThrowsAsync<ArgumentException>(() => Complete(42)));
     }
 
     [Test]
@@ -47,7 +49,7 @@ public class ActionPipeFixture
         await Complete(42);
         SpinWait.SpinUntil(() => nextReceived.Count > 0, TimeSpan.FromSeconds(2));
 
-        Assert.That(nextReceived, Does.Contain(42));
+        Assert(nextReceived.Contains(42));
     }
 
     async Task Complete(params int[] items)
