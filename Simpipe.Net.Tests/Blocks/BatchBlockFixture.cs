@@ -1,3 +1,5 @@
+using static SharpAssert.Sharp;
+
 namespace Simpipe.Blocks;
 
 [TestFixture]
@@ -21,9 +23,9 @@ public class BatchBlockFixture
             await batchBlock.Send(i);
         await batchBlock.Complete();
 
-        Assert.That(batches.Count, Is.EqualTo(3));
-        Assert.That(batches[0], Is.EqualTo(new[] {1, 2, 3}));
-        Assert.That(batches[1], Is.EqualTo(new[] {4, 5, 6})); 
-        Assert.That(batches[2], Is.EqualTo(new[] {7}));
+        Assert(batches.Count == 3);
+        Assert(batches[0].SequenceEqual(new[] {1, 2, 3}));
+        Assert(batches[1].SequenceEqual(new[] {4, 5, 6})); 
+        Assert(batches[2].SequenceEqual(new[] {7}));
     }
 }
