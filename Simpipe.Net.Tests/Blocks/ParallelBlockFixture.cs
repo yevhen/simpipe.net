@@ -1,3 +1,5 @@
+using static SharpAssert.Sharp;
+
 namespace Simpipe.Blocks;
 
 [TestFixture]
@@ -46,14 +48,14 @@ public class ParallelBlockFixture
         await parallelBlock.Send(item);
         await Task.Delay(100);
 
-        Assert.That(item.Block1Value, Is.EqualTo("1"));
-        Assert.That(item.Block2Value, Is.EqualTo("2"));
-        Assert.That(doneItems, Has.Count.EqualTo(0));
+        Assert(item.Block1Value == "1");
+        Assert(item.Block2Value == "2");
+        Assert(doneItems.Count == 0);
 
         tcs1.SetResult();
         await Task.Delay(10);
 
-        Assert.That(doneItems, Has.Count.EqualTo(1));
-        Assert.That(doneItems[0], Is.SameAs(item));
+        Assert(doneItems.Count == 1);
+        Assert(ReferenceEquals(doneItems[0], item));
     }
 }
