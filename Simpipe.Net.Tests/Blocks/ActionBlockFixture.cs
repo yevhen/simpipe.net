@@ -1,3 +1,5 @@
+using static SharpAssert.Sharp;
+
 namespace Simpipe.Blocks;
 
 [TestFixture]
@@ -18,8 +20,8 @@ public class ActionBlockFixture
         await block.Send(42);
         await block.Complete();
 
-        Assert.That(processed, Is.EqualTo(42));
-        Assert.That(completed, Is.EqualTo(42));
+        Assert(processed == 42);
+        Assert(completed == 42);
     }
 
     [Test]
@@ -44,9 +46,9 @@ public class ActionBlockFixture
             await block.Send(i);
         await block.Complete();
 
-        Assert.That(processedCount, Is.EqualTo(5));
-        Assert.That(maxConcurrency, Is.GreaterThanOrEqualTo(2));
-        Assert.That(maxConcurrency, Is.LessThanOrEqualTo(3));
+        Assert(processedCount == 5);
+        Assert(maxConcurrency >= 2);
+        Assert(maxConcurrency <= 3);
     }
 
     [Test]
@@ -68,10 +70,10 @@ public class ActionBlockFixture
         await block.Send(2);
         await block.Send(3);
 
-        Assert.ThrowsAsync<ArgumentException>(() => block.Complete());
+        Assert(await ThrowsAsync<ArgumentException>(async () => await block.Complete()));
         
-        Assert.That(processedItems, Contains.Item(1), "Only item 1 should be processed before the exception occurs");
-        Assert.That(processedItems, Does.Not.Contain(2));
-        Assert.That(processedItems, Does.Not.Contain(3));
+        Assert(processedItems.Contains(1), "Only item 1 should be processed before the exception occurs");
+        Assert(!processedItems.Contains(2));
+        Assert(!processedItems.Contains(3));
     }
 }
