@@ -1,4 +1,5 @@
 using Simpipe.Blocks;
+using static SharpAssert.Sharp;
 
 namespace Simpipe.Pipes;
 
@@ -38,15 +39,15 @@ public class ForkPipeFixture
         await fork.Send(item);
         await Task.Delay(10);
 
-        Assert.That(item.Block1Value, Is.EqualTo("1"));
-        Assert.That(item.Block2Value, Is.EqualTo("2"));
-        Assert.That(joinedItems, Has.Count.EqualTo(0));
+        Assert(item.Block1Value == "1");
+        Assert(item.Block2Value == "2");
+        Assert(joinedItems.Count == 0);
 
         tcs1.SetResult();
         await Task.Delay(10);
 
-        Assert.That(joinedItems, Has.Count.EqualTo(1));
-        Assert.That(joinedItems[0], Is.SameAs(item));
+        Assert(joinedItems.Count == 1);
+        Assert(ReferenceEquals(joinedItems[0], item));
     }
 
     [Test]
@@ -77,12 +78,12 @@ public class ForkPipeFixture
         await fork.Send(item);
         await Task.Delay(10);
 
-        Assert.That(nextReceived, Has.Count.EqualTo(0));
+        Assert(nextReceived.Count == 0);
 
         tcs1.SetResult();
         await Task.Delay(10);
 
-        Assert.That(nextReceived[0], Is.SameAs(item));
+        Assert(ReferenceEquals(nextReceived[0], item));
     }
 
     [Test]
@@ -100,9 +101,9 @@ public class ForkPipeFixture
         await block.Send(item);
         await block.Complete();
 
-        Assert.That(doneItems, Has.Count.EqualTo(1));
-        Assert.That(doneItems[0], Is.SameAs(item));
-        Assert.That(item.Block1Value, Is.EqualTo(""));
+        Assert(doneItems.Count == 1);
+        Assert(ReferenceEquals(doneItems[0], item));
+        Assert(item.Block1Value == "");
     }
 
     [Test]
@@ -121,8 +122,8 @@ public class ForkPipeFixture
         await block.Send(item);
         await block.Complete();
 
-        Assert.That(doneItems, Has.Count.EqualTo(1));
-        Assert.That(doneItems[0], Is.SameAs(item));
-        Assert.That(item.Block1Value, Is.EqualTo(""));
+        Assert(doneItems.Count == 1);
+        Assert(ReferenceEquals(doneItems[0], item));
+        Assert(item.Block1Value == "");
     }
 }
