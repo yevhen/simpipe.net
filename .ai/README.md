@@ -48,6 +48,8 @@ public void Should_find_matching_item()
 
 ### Custom Error Messages
 
+SharpAssert's `Assert()` method supports custom error messages as a second parameter (just like NUnit's Assert()).
+
 ```csharp
 Assert(user.IsActive, $"User {user.Name} should be active for this operation");
 ```
