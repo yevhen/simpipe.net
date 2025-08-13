@@ -1,3 +1,5 @@
+using static SharpAssert.Sharp;
+
 namespace Simpipe.Pipes;
 
 [TestFixture]
@@ -16,16 +18,16 @@ public class PipelineLimiterTest
 
         await limiter.Send(1);
         await Task.Delay(10);
-        Assert.That(dispatched, Has.Count.EqualTo(1));
-        Assert.That(dispatched[0], Is.EqualTo(1));
+        Assert(dispatched.Count == 1);
+        Assert(dispatched[0] == 1);
 
         await limiter.Send(2);
         await Task.Delay(10);
-        Assert.That(dispatched, Has.Count.EqualTo(1));
+        Assert(dispatched.Count == 1);
 
         var sent = limiter.Send(3);
         await Task.Delay(10);
-        Assert.That(sent.IsCompleted, Is.False);
+        Assert(sent.IsCompleted == false);
     }
 
     [Test]
@@ -46,9 +48,9 @@ public class PipelineLimiterTest
         await limiter.TrackDone(1);
         await sent;
 
-        Assert.That(dispatched, Has.Count.EqualTo(2));
-        Assert.That(dispatched[0], Is.EqualTo(1));
-        Assert.That(dispatched[1], Is.EqualTo(2));
+        Assert(dispatched.Count == 2);
+        Assert(dispatched[0] == 1);
+        Assert(dispatched[1] == 2);
 
         await limiter.TrackDone(2);
         await limiter.Complete();
