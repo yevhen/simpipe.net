@@ -1,4 +1,5 @@
 using System.Threading.Channels;
+using static SharpAssert.Sharp;
 
 namespace Simpipe.Blocks;
 
@@ -26,8 +27,8 @@ public class BatchActionBlockFixture
 
         await batchActionBlock.Complete();
 
-        Assert.That(batch1, Is.EqualTo(new[] {"i1", "i2"}));
-        Assert.That(batch2, Is.EqualTo(new[] {"i3", "i4"}));
+        Assert(batch1.SequenceEqual(new[] {"i1", "i2"}));
+        Assert(batch2.SequenceEqual(new[] {"i3", "i4"}));
     }
 
     [Test]
@@ -52,12 +53,11 @@ public class BatchActionBlockFixture
         await batchActionBlock.Send("error");
         await batchActionBlock.Send("item4");
 
-        Assert.ThrowsAsync<ArgumentException>(() => batchActionBlock.Complete());
+        Assert(await ThrowsAsync<ArgumentException>(async () => await batchActionBlock.Complete()));
         
-        Assert.That(processedBatches.Count, Is.EqualTo(1), "Only the first batch should be processed before the exception");
-        Assert.That(processedBatches[0], Is.EqualTo(new[] {"item1", "item2"}));
+        Assert(processedBatches.Count == 1); // Only the first batch should be processed before the exception
+        Assert(processedBatches[0].SequenceEqual(new[] {"item1", "item2"}));
 
-        Assert.That(processedBatches.Any(b => b.Contains("error")), Is.False,
-            "The second batch containing \"error\" should not be in the processed list");
+        Assert(!processedBatches.Any(b => b.Contains("error"))); // The second batch containing "error" should not be in the processed list
     }
 }
