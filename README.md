@@ -225,8 +225,7 @@ var saveToDb = Pipe<Tweet>
 var forkPipe = Pipe<Tweet>
     .Fork(sentimentBlock, languageBlock, entitiesBlock)
     .Join(tweet => Console.WriteLine($"Enriched tweet {tweet.Id}"))
-    .Id("enrichment-fork")
-    .ToPipe();
+    .Id("enrichment-fork");
 
 var pipeline = new Pipeline<Tweet>
 {
