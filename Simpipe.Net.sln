@@ -1,8 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Simpipe.Net", "Simpipe.Net\Simpipe.Net.csproj", "{63C18A6A-0C8D-4821-833D-348274B27CE1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Simpipe.Net", "src\Simpipe.Net\Simpipe.Net.csproj", "{63C18A6A-0C8D-4821-833D-348274B27CE1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Simpipe.Net.Tests", "Simpipe.Net.Tests\Simpipe.Net.Tests.csproj", "{904D39AA-E316-43C7-BDBF-93EC07D9591E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Simpipe.Net.Tests", "src\Simpipe.Net.Tests\Simpipe.Net.Tests.csproj", "{904D39AA-E316-43C7-BDBF-93EC07D9591E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

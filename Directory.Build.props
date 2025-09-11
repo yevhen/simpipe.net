@@ -1,0 +1,26 @@
+<Project>
+    <PropertyGroup>
+        <Version>1.0.0</Version>
+        <VersionSuffix Condition="'$(VersionSuffix)' == '' AND '$(CI)' != 'true'">local</VersionSuffix>
+        <PackageVersion>$(Version)</PackageVersion>
+        <PackageVersion Condition="'$(VersionSuffix)' != ''">$(Version)-$(VersionSuffix)</PackageVersion>
+        
+        <!-- Assembly versioning -->
+        <AssemblyVersion>$(Version)</AssemblyVersion>
+        <FileVersion>$(Version)</FileVersion>
+        
+        <!-- Repository information -->
+        <RepositoryUrl>https://github.com/yevhen/simpipe.net</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        
+        <!-- Package metadata -->
+        <Authors>Yevhen Bobrov</Authors>
+        <Company>Cloudrite</Company>
+        <Copyright>Copyright © 2025 Yevhen Bobrov</Copyright>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
+        <PackageProjectUrl>https://github.com/yevhen/simpipe.net</PackageProjectUrl>
+        <PackageTags>dotnet;pipeline;channels;concurrent;processing</PackageTags>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageIcon Condition="Exists('icon.png')">icon.png</PackageIcon>
+    </PropertyGroup>
+</Project>

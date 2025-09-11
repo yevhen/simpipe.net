@@ -1,0 +1,30 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>Simpipe</RootNamespace>
+        
+        <!-- Package-specific metadata -->
+        <PackageId>Simpipe.Net</PackageId>
+        <Title>Simpipe.Net</Title>
+        <Description>A .NET pipeline library using System.Threading.Channels for efficient data processing pipelines</Description>
+        <PackageReleaseNotes>Pipeline pattern implementation with composable pipe components</PackageReleaseNotes>
+    </PropertyGroup>
+
+    <!-- Release configuration -->
+    <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+        <!-- <GenerateDocumentationFile>true</GenerateDocumentationFile> TODO: Enable after XML docs are complete -->
+    </PropertyGroup>
+
+    <!-- Package assets -->
+    <ItemGroup>
+        <None Include="..\..\README.md" Pack="true" PackagePath="\" Condition="Exists('..\..\README.md')" />
+        <None Include="..\..\LICENSE" Pack="true" PackagePath="\" Condition="Exists('..\..\LICENSE')" />
+        <None Include="..\..\icon.png" Pack="true" PackagePath="\" Condition="Exists('..\..\icon.png')" />
+    </ItemGroup>
+
+</Project>

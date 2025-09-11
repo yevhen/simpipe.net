@@ -1,0 +1,71 @@
+name: Publish to NuGet
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: 1
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: |
+          8.0.x
+          9.0.x
+    
+    - name: Get version from tag
+      id: get_version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+    
+    - name: Restore dependencies
+      run: dotnet restore Simpipe.Net.sln
+    
+    - name: Build
+      run: dotnet build Simpipe.Net.sln --configuration Release --no-restore -p:Version=${{ steps.get_version.outputs.VERSION }}
+    
+    - name: Run tests
+      run: dotnet test Simpipe.Net.sln --configuration Release --no-build
+    
+    - name: Create packages
+      run: |
+        mkdir -p ./packages
+        dotnet pack src/Simpipe.Net/Simpipe.Net.csproj \
+          --configuration Release \
+          --no-build \
+          --output ./packages \
+          -p:PackageVersion=${{ steps.get_version.outputs.VERSION }}
+    
+    - name: Publish to NuGet
+      run: |
+        dotnet nuget push ./packages/*.nupkg \
+          --api-key ${{ secrets.NUGET_API_KEY }} \
+          --source https://api.nuget.org/v3/index.json \
+          --skip-duplicate
+    
+    - name: Create GitHub Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ steps.get_version.outputs.VERSION }}
+        draft: false
+        prerelease: false

@@ -1,0 +1,50 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+env:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: 1
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: |
+          8.0.x
+          9.0.x
+    
+    - name: Restore dependencies
+      run: dotnet restore Simpipe.Net.sln
+    
+    - name: Build
+      run: dotnet build Simpipe.Net.sln --configuration Release --no-restore
+    
+    - name: Run Tests
+      run: dotnet test Simpipe.Net.sln --configuration Release --no-build --logger trx
+    
+    - name: Create Local Package
+      run: |
+        chmod +x ./scripts/publish-local.sh
+        ./scripts/publish-local.sh
+    
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results
+        path: '**/*.trx'
