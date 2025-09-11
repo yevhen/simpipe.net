@@ -21,6 +21,6 @@
         <PackageProjectUrl>https://github.com/yevhen/simpipe.net</PackageProjectUrl>
         <PackageTags>dotnet;pipeline;channels;concurrent;processing</PackageTags>
         <PackageReadmeFile>README.md</PackageReadmeFile>
-        <PackageIcon Condition="Exists('icon.png')">icon.png</PackageIcon>
+        <PackageIcon>icon.png</PackageIcon>
     </PropertyGroup>
 </Project>

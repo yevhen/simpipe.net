@@ -22,9 +22,9 @@
 
     <!-- Package assets -->
     <ItemGroup>
-        <None Include="..\..\README.md" Pack="true" PackagePath="\" Condition="Exists('..\..\README.md')" />
-        <None Include="..\..\LICENSE" Pack="true" PackagePath="\" Condition="Exists('..\..\LICENSE')" />
-        <None Include="..\..\icon.png" Pack="true" PackagePath="\" Condition="Exists('..\..\icon.png')" />
+        <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+        <None Include="..\..\LICENSE" Pack="true" PackagePath="\"/>
+        <None Include="..\..\icon.png" Pack="true" PackagePath="\" />
     </ItemGroup>
 
 </Project>
