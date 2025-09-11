@@ -19,7 +19,7 @@ namespace Simpipe.Blocks;
 /// • Reference-based tracking requires items to be reference types or properly implement equality
 /// </para>
 /// <para>
-/// This block is typically created through the <see cref="Pipe{T}.Fork"/> method rather than directly.
+/// This block is typically created through the Fork pipe method rather than directly.
 /// </para>
 /// <para><strong>Performance Considerations:</strong></para>
 /// <list type="bullet">

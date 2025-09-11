@@ -157,7 +157,18 @@ public class BatchBlock<T> : IBlock
         await FlushBuffer();
     }
 
+    /// <summary>
+    /// Gets the number of items received by the block.
+    /// </summary>
     public int InputCount => executor.InputCount;
+    
+    /// <summary>
+    /// Gets the number of batches that have been processed by the block.
+    /// </summary>
     public int OutputCount => executor.OutputCount;
+    
+    /// <summary>
+    /// Gets the number of items currently being processed by the block.
+    /// </summary>
     public int WorkingCount => executor.WorkingCount;
 }

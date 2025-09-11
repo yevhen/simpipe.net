@@ -256,5 +256,14 @@ public sealed class ActionPipeBuilder<T>(BlockItemAction<T> action)
             done,
             cancellationToken));
 
+    /// <summary>
+    /// Implicitly converts an <see cref="ActionPipeBuilder{T}"/> to a <see cref="Pipe{T}"/> by building the configured pipe.
+    /// </summary>
+    /// <param name="builder">The builder to convert to a pipe.</param>
+    /// <returns>A new <see cref="Pipe{T}"/> instance with the builder's configuration.</returns>
+    /// <remarks>
+    /// This conversion allows ActionPipeBuilder to be used directly in contexts expecting a Pipe,
+    /// providing a seamless fluent interface experience.
+    /// </remarks>
     public static implicit operator Pipe<T>(ActionPipeBuilder<T> builder) => builder.ToPipe();
 }

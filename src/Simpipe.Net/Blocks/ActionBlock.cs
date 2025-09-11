@@ -176,8 +176,17 @@ public class ActionBlock<T> : IActionBlock<T>
             await executor.ExecuteDone(item, done);
     }
 
+    /// <summary>
+    /// Sends an item to the action block for processing.
+    /// </summary>
+    /// <param name="item">The item to process.</param>
+    /// <returns>A task that represents the asynchronous send operation.</returns>
     public Task Send(BlockItem<T> item) => executor.ExecuteSend(item, send);
 
+    /// <summary>
+    /// Signals that no more items will be added to the block and waits for all processing to complete.
+    /// </summary>
+    /// <returns>A task that completes when all processing is finished.</returns>
     public async Task Complete()
     {
         input.Writer.Complete();
@@ -185,8 +194,19 @@ public class ActionBlock<T> : IActionBlock<T>
         await processor;
     }
 
+    /// <summary>
+    /// Gets the number of items received by the block.
+    /// </summary>
     public int InputCount => executor.InputCount;
+    
+    /// <summary>
+    /// Gets the number of items that have been processed by the block.
+    /// </summary>
     public int OutputCount => executor.OutputCount;
+    
+    /// <summary>
+    /// Gets the number of items currently being processed by the block.
+    /// </summary>
     public int WorkingCount => executor.WorkingCount;
 }
 

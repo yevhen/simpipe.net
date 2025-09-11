@@ -17,7 +17,7 @@
     <PropertyGroup Condition="'$(Configuration)' == 'Release'">
         <IncludeSymbols>true</IncludeSymbols>
         <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-        <!-- <GenerateDocumentationFile>true</GenerateDocumentationFile> TODO: Enable after XML docs are complete -->
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
     </PropertyGroup>
 
     <!-- Package assets -->

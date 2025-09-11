@@ -60,6 +60,11 @@ public partial class Pipe<T>
     readonly TaskCompletionSource completion = new();
     readonly IActionBlock<T> block;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Pipe{T}"/> class.
+    /// </summary>
+    /// <param name="options">The pipe configuration options.</param>
+    /// <param name="blockFactory">Factory function to create the underlying processing block.</param>
     public Pipe(PipeOptions<T> options, Func<BlockItemAction<T>, IActionBlock<T>> blockFactory)
     {
         Id = options.Id;

@@ -11,3 +11,4 @@
 - **NUnit analyzer warnings**: Use constraint model instead of classic `Assert.AreEqual()`, etc
 - **Build + test cycle**: Following strict TDD cycle (red-green-refactor) with immediate testing after each change ensures stability
 - **Git commit patterns**: Repository follows descriptive commit messages with implementation context
+- **XML documentation warnings**: Missing docs for builder methods, implicit operators, and interface members cause CS1591 warnings - comprehensive documentation following existing patterns resolves all warnings

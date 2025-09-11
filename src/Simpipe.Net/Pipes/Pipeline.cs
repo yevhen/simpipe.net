@@ -234,6 +234,32 @@ public class Pipeline<T>(Func<T, Pipe<T>?>? defaultRoute = null) : IEnumerable<P
     /// </remarks>
     public Task Completion => completion.Task;
 
+    /// <summary>
+    /// Returns an enumerator that iterates through the pipes in the pipeline in the order they were added.
+    /// </summary>
+    /// <returns>An enumerator for the pipeline's pipes.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method enables the pipeline to be used in foreach loops and LINQ operations,
+    /// providing access to individual pipes for monitoring or configuration purposes.
+    /// </para>
+    /// <para>
+    /// The enumeration order matches the processing order: the first pipe returned is the head pipe,
+    /// and subsequent pipes follow the linking sequence.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Enumerating pipeline pipes:
+    /// <code>
+    /// foreach (var pipe in pipeline)
+    /// {
+    ///     Console.WriteLine($"Pipe {pipe.Id}: {pipe.ProcessedCount} processed");
+    /// }
+    /// 
+    /// // Using LINQ
+    /// var busyPipes = pipeline.Where(p => p.ProcessedCount > 1000).ToList();
+    /// </code>
+    /// </example>
     public IEnumerator<Pipe<T>> GetEnumerator() => pipes.GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();

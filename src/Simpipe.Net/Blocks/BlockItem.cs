@@ -40,6 +40,9 @@
 /// </example>
 public readonly record struct BlockItem<T>
 {
+    /// <summary>
+    /// Gets a singleton instance representing an empty block item.
+    /// </summary>
     public static readonly BlockItem<T> Empty = new();
 
     readonly IBlockItemHandler handler;
@@ -65,6 +68,9 @@ public readonly record struct BlockItem<T>
     T? Value  { get; }
     T[]? Values { get; }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BlockItem{T}"/> struct representing an empty item.
+    /// </summary>
     public BlockItem()
     {
         Values = null;
@@ -75,6 +81,10 @@ public readonly record struct BlockItem<T>
         handler = BlockItemEmptyHandler.Instance;
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BlockItem{T}"/> struct with an array of items.
+    /// </summary>
+    /// <param name="values">The array of items to wrap.</param>
     public BlockItem(T[] values)
     {
         Values = values;
@@ -85,6 +95,10 @@ public readonly record struct BlockItem<T>
         handler = BlockItemArrayHandler.Instance;
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BlockItem{T}"/> struct with a single item.
+    /// </summary>
+    /// <param name="value">The item to wrap.</param>
     public BlockItem(T value)
     {
         Value = value;
@@ -185,7 +199,20 @@ public readonly record struct BlockItem<T>
     /// </remarks>
     public int Size => handler.Size(this);
 
+    /// <summary>
+    /// Implicitly converts a <see cref="BlockItem{T}"/> to a single item.
+    /// </summary>
+    /// <param name="item">The block item to convert.</param>
+    /// <returns>The single item value.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the item is not a single value.</exception>
     public static implicit operator T(BlockItem<T> item) => item.GetValue();
+    
+    /// <summary>
+    /// Implicitly converts a <see cref="BlockItem{T}"/> to an array of items.
+    /// </summary>
+    /// <param name="item">The block item to convert.</param>
+    /// <returns>The array of items.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the item is not an array.</exception>
     public static implicit operator T[](BlockItem<T> item) => item.GetArray();
 
     interface IBlockItemHandler
