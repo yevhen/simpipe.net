@@ -7,3 +7,4 @@ coverage.cobertura.xml
 local-feed
 packages
 .idea/
+.DS_Store
