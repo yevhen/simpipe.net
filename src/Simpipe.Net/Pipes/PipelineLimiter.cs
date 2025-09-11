@@ -116,10 +116,7 @@ public class PipelineLimiter<T>
 
     async Task ProcessSend()
     {
-        if (wip >= maxWork)
-            return;
-
-        if (input.Reader.TryRead(out var item))
+        while (wip < maxWork && input.Reader.TryRead(out var item))
         {
             wip++;
             await dispatch(item);
@@ -128,7 +125,7 @@ public class PipelineLimiter<T>
 
     Task ProcessDone()
     {
-        if (done.Reader.TryRead(out _))
+        while (done.Reader.TryRead(out _))
             wip--;
 
         return Task.CompletedTask;
