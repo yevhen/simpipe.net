@@ -6,3 +6,4 @@ riderModule.iml
 coverage.cobertura.xml
 local-feed
 packages
+.idea/
