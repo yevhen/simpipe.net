@@ -139,7 +139,10 @@ public class ActionBlock<T> : IActionBlock<T>
         BlockItemAction<T>? done = null,
         CancellationToken cancellationToken = default)
     {
-        this.action = action;
+        if (parallelism <= 0)
+            throw new ArgumentOutOfRangeException(nameof(parallelism), "Parallelism must be greater than 0.");
+
+        this.action = action ?? throw new ArgumentNullException(nameof(action));
         this.done = done ?? BlockItemAction<T>.Noop;
         this.cancellationToken = cancellationToken;
 
