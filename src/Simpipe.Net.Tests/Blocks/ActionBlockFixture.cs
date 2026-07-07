@@ -6,6 +6,15 @@ namespace Simpipe.Blocks;
 public class ActionBlockFixture
 {
     [Test]
+    public void Rejects_zero_parallelism()
+    {
+        Assert(Throws<ArgumentOutOfRangeException>(() => new ActionBlock<int>(
+            capacity: 1,
+            parallelism: 0,
+            action: BlockItemAction<int>.Noop)));
+    }
+
+    [Test]
     public async Task Processes_single_item()
     {
         var processed = 0;
